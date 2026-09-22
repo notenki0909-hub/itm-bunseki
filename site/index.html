@@ -40,10 +40,10 @@
   <div id="todayCard" class="card" hidden>
     <h2 style="margin:0 0 10px;font-size:16px">本日の状況</h2>
     <div class="summary">
-      <div class="stat" data-target="todayExplain" data-note="集計期間内で取得できているデータの日数です。取得できた最新営業日を含みます。">
-        <b id="todayDate">―</b><span>最新データの日付</span></div>
+      <div class="stat" data-target="todayExplain" data-note="集計期間として使われているデータの営業日日数です。">
+        <b id="todayDate">―</b><span>集計期間の営業日日数</span><span class="stat-sub" id="todayRange"></span></div>
       <div class="stat" data-target="todayExplain" data-note="取得できた最新営業日の終値です。">
-        <b id="todayClose">―</b><span>終値</span></div>
+        <b id="todayClose">―</b><span>終値</span><span class="stat-sub" id="todayCloseDate"></span></div>
       <div class="stat" data-target="todayExplain" data-note="終値 × 権利行使価格の比率。今エントリーする場合の権利行使価格の目安です。">
         <b id="todayStrike">―</b><span>現在の比率での権利行使価格</span></div>
     </div>
@@ -56,8 +56,8 @@
     <h2 style="margin:0 0 10px;font-size:16px"><span id="symbolLabel"></span> の分析結果</h2>
     <p class="sub" style="margin:0 0 10px"><b>判定基準：</b>権利行使価格（各エントリー日の終値 × 比率）だけを基準に、集計期間内の<b>全エントリー日</b>でITMになったかを判定します。</p>
     <div class="summary">
-      <div class="stat" data-target="resultExplain" data-note="過去のデータの中で、実際に計算できた「取引開始日」の件数です（集計期間 − 判定期間の分だけ確保されます）。">
-        <b id="entryCount">―</b><span>判定件数(日)</span></div>
+      <div class="stat" data-target="resultExplain" data-note="集計期間の営業日日数から、判定期間の分を差し引いた日数です。この日数分が、実際に計算できる「取引開始日」の件数になります。">
+        <b id="entryCount">―</b><span>集計期間の営業日日数（判定期間分マイナス）</span></div>
       <div class="stat" data-target="resultExplain" data-note="判定件数のうち、判定期間内に1日でもITMになった「取引開始日」の実数です。ITMが良い結果か悪い結果かは取引タイプにより異なります。">
         <b id="itmCount">―</b><span>ITM発生エントリー数</span></div>
       <div class="stat" data-target="resultExplain" data-note="ITM発生エントリー数 ÷ 判定件数。売り(プット売/コール売)は低いほど、買い(コール買/プット買)は高いほど有利です。">

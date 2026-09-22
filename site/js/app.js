@@ -33,7 +33,9 @@ const els = {
 
   todayCard: document.getElementById("todayCard"),
   todayDate: document.getElementById("todayDate"),
+  todayRange: document.getElementById("todayRange"),
   todayClose: document.getElementById("todayClose"),
+  todayCloseDate: document.getElementById("todayCloseDate"),
   todayStrike: document.getElementById("todayStrike"),
   momentumStrip: document.getElementById("momentumStrip"),
 
@@ -256,12 +258,15 @@ function renderAll(t) {
 
 function renderTodayCard(t) {
   const closes = periodClosesOf(t);
+  const dates = periodDatesOf(t);
   const latestIdx = closes.length - 1;
   const latestClose = closes[latestIdx];
   const strike = latestClose * t.ratio;
 
-  els.todayDate.textContent = `最新${closes.length}日分中`;
+  els.todayDate.textContent = closes.length.toLocaleString("ja-JP");
+  els.todayRange.textContent = `${dates[0]} 〜 ${dates[latestIdx]}`;
   els.todayClose.textContent = latestClose.toFixed(2);
+  els.todayCloseDate.textContent = dates[latestIdx];
   els.todayStrike.textContent = strike.toFixed(2);
 
   const strip = computeRecentMomentumStrip(closes, 7);

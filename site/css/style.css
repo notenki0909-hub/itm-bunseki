@@ -57,6 +57,7 @@ button:disabled{opacity:.6;cursor:default}
   padding:8px 14px;min-width:100px;text-align:center;cursor:pointer}
 .stat b{display:block;font-size:20px}
 .stat span{font-size:11px;color:var(--muted)}
+.stat .stat-sub{display:block;font-size:10px;color:var(--muted);margin-top:3px;white-space:nowrap}
 .stat:hover b{color:var(--accent)}
 .stat.active{border-color:var(--accent)}
 
