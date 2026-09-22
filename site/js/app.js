@@ -7,6 +7,7 @@ import {
 } from "./calc.js";
 import { renderDayProbChart } from "./chart.js";
 import { renderEntryHeatmap } from "./heatmap.js";
+import { initThemeBar } from "./theme.js";
 
 // 複数銘柄・複数タイプを切り替えながら見比べられるよう「タブ」単位で状態を持つ。
 // タブの切り替えは常にメモリ上のデータを出し直すだけで、APIへの再アクセスは発生しない。
@@ -503,6 +504,7 @@ function setupStatExplain() {
 }
 
 function init() {
+  initThemeBar("theme-bar");
   initTypeOptions();
   initWindowOptions();
   initPeriodOptions();

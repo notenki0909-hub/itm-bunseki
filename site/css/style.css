@@ -1,17 +1,50 @@
 :root{
   --bg:#fafafa;--card:#ffffff;--line:#e6e6e6;--muted:#666666;--fg:#1a1a1a;
-  --accent:#2563eb;--field:#f7f8fa;
+  --accent:#2563eb;--th:#f3f4f6;--field:#f7f8fa;
   --gA:#166534;--gB:#854d0e;--gC:#b91c1c;
   --wbg:#fff7ed;--wbd:#fed7aa;--wfg:#7c2d12;
 }
+/* 意味色(gA/gB/gC=良い/普通/悪い, wbg/wbd/wfg=警告)はアクセント配色プリセットに連動させず、
+   ライト/ダークの2パターンだけ独立に持たせる（プリセットを変えても「緑=有利」等の意味が壊れないように）。*/
+:root[data-mode="dark"]{
+  --bg:#101216;--card:#181b22;--line:#2b303a;--muted:#98a1ad;--fg:#e6e8eb;
+  --accent:#6aa4ff;--th:#1e232c;--field:#161a21;
+  --gA:#4ade80;--gB:#fbbf24;--gC:#f87171;
+  --wbg:#26210f;--wbd:#5a4a1b;--wfg:#e7c06a;
+}
 @media (prefers-color-scheme: dark){
-  :root{
+  /* JS(head内)が必ずdata-modeを明示設定するため、これはJS無効時のフォールバックとしてのみ働く */
+  :root:not([data-mode]){
     --bg:#101216;--card:#181b22;--line:#2b303a;--muted:#98a1ad;--fg:#e6e8eb;
-    --accent:#6aa4ff;--field:#161a21;
+    --accent:#6aa4ff;--th:#1e232c;--field:#161a21;
     --gA:#4ade80;--gB:#fbbf24;--gC:#f87171;
     --wbg:#26210f;--wbd:#5a4a1b;--wfg:#e7c06a;
   }
 }
+
+/* アクセント配色プリセット。銘柄診断ツールと同じ配色値・同じlocalStorageキー(pp_theme)を使い、
+   ツール間で選んだ配色が引き継がれるようにしている。 */
+:root[data-pal="blueplus"]{--bg:#f7f8fa;--card:#ffffff;--line:#dfe1e6;--muted:#5b6472;--fg:#161a1f;--accent:#2563eb;--th:#eaedf3;--field:#f4f6f9;}
+:root[data-pal="blueplus"][data-mode="dark"]{--bg:#0d0f14;--card:#191d26;--line:#30363f;--muted:#9aa3ae;--fg:#e9ebef;--accent:#7db0ff;--th:#20262f;--field:#161b24;}
+:root[data-pal="teal"]{--bg:#f2f8f6;--card:#ffffff;--line:#d7e6e1;--muted:#556661;--fg:#132019;--accent:#0d7c72;--th:#e4f1ed;--field:#f0f7f5;}
+:root[data-pal="teal"][data-mode="dark"]{--bg:#0b120f;--card:#152019;--line:#28372f;--muted:#8fa39c;--fg:#e2ece7;--accent:#3fd9c8;--th:#1c2b24;--field:#131d17;}
+:root[data-pal="slate"]{--bg:#f5f6f9;--card:#ffffff;--line:#dde1e8;--muted:#5b6577;--fg:#171d28;--accent:#334c86;--th:#e8ebf1;--field:#f3f5f8;}
+:root[data-pal="slate"][data-mode="dark"]{--bg:#0d0f13;--card:#181c23;--line:#2c323d;--muted:#96a0ae;--fg:#e6e8ec;--accent:#8fb0e6;--th:#1e232c;--field:#161a21;}
+:root[data-pal="sand"]{--bg:#f8f4ea;--card:#fffdf8;--line:#e7dcc7;--muted:#6a5f48;--fg:#221c11;--accent:#b1500a;--th:#efe5d1;--field:#f5efe0;}
+:root[data-pal="sand"][data-mode="dark"]{--bg:#131009;--card:#201b11;--line:#372c1b;--muted:#a89d84;--fg:#ece4d3;--accent:#ffab2e;--th:#271f12;--field:#191509;}
+:root[data-pal="violet"]{--bg:#f8f6fd;--card:#ffffff;--line:#e4dcf1;--muted:#635a75;--fg:#1b1626;--accent:#6d28d9;--th:#efe9fa;--field:#f5f2fc;}
+:root[data-pal="violet"][data-mode="dark"]{--bg:#0f0d16;--card:#1c1727;--line:#302742;--muted:#a89fb8;--fg:#ebe5f4;--accent:#b79bff;--th:#231c30;--field:#171223;}
+:root[data-pal="rose"]{--bg:#fdf5f8;--card:#ffffff;--line:#efd9e2;--muted:#7a5a65;--fg:#24171d;--accent:#c2255c;--th:#fbe7ef;--field:#fbf3f6;}
+:root[data-pal="rose"][data-mode="dark"]{--bg:#140f12;--card:#211820;--line:#3a2b33;--muted:#b499a3;--fg:#efe3e9;--accent:#f472b6;--th:#281c24;--field:#1a1318;}
+
+#theme-bar{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin:10px 0 4px;font-size:12px}
+#theme-bar .tb-lbl{color:var(--muted)}
+#theme-bar .sw{width:20px;height:20px;border-radius:50%;border:1px solid var(--line);cursor:pointer;padding:0;background:var(--tb-c,#ccc)}
+#theme-bar .sw[data-pal="genko"]{background:linear-gradient(135deg,#fff 48%,#2563eb 52%)}
+#theme-bar .sw[aria-pressed="true"]{outline:2px solid var(--fg);outline-offset:1px}
+#theme-bar .tb-btn{border:1px solid var(--line);background:var(--card);color:var(--muted);border-radius:7px;padding:3px 9px;font:inherit;font-size:12px;cursor:pointer}
+#theme-bar .tb-reset{color:var(--accent);border:0;background:none;text-decoration:underline;text-underline-offset:2px;cursor:pointer;font:inherit;font-size:12px}
+#theme-bar .tb-sep{width:1px;align-self:stretch;background:var(--line);margin:0 3px}
 *{box-sizing:border-box}
 body{margin:0;font:14px/1.6 -apple-system,"Hiragino Kaku Gothic ProN","Meiryo",sans-serif;
   background:var(--bg);color:var(--fg)}

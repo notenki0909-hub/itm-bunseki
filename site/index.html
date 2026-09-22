@@ -1,10 +1,12 @@
 <!doctype html><html lang="ja"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
+<script>try{var t=JSON.parse(localStorage.getItem("pp_theme")||"{}");if(t.pal&&t.pal!=="genko")document.documentElement.setAttribute("data-pal",t.pal);if(t.mode==="dark"||t.mode==="light")document.documentElement.setAttribute("data-mode",t.mode);}catch(e){}</script>
 <title>ITM分析ツール</title>
 <link rel="stylesheet" href="css/style.css">
 </head><body>
 <div class="wrap">
   <div class="topbar"><h1>ITM分析ツール</h1><span class="pagenav"><button id="shareBtn" type="button" class="link-btn">共有リンクをコピー</button><a href="guide.html">使い方・見方</a></span></div>
+  <div id="theme-bar"></div>
   <p class="sub">ティッカーを入力すると、過去の株価から「権利行使価格に対してどれくらいの確率でITM（権利行使価格を超える/下回る）になったか」を分析します。米国株のみ対応。</p>
   <p class="sub" style="margin-top:-14px">入力内容は自動的にブラウザに保存され、次回開いたときも続きから再開できます。「共有リンクをコピー」で、別の端末でも同じ設定を開けます（データは別端末で再取得されます）。</p>
 

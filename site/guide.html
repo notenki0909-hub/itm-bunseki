@@ -1,5 +1,6 @@
 <!doctype html><html lang="ja"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
+<script>try{var t=JSON.parse(localStorage.getItem("pp_theme")||"{}");if(t.pal&&t.pal!=="genko")document.documentElement.setAttribute("data-pal",t.pal);if(t.mode==="dark"||t.mode==="light")document.documentElement.setAttribute("data-mode",t.mode);}catch(e){}</script>
 <title>使い方・見方 - ITM分析ツール</title>
 <link rel="stylesheet" href="css/style.css">
 <style>
@@ -19,6 +20,7 @@
 </head><body>
 <div class="wrap guide">
   <div class="topbar"><h1>使い方・見方</h1><span class="pagenav"><a href="index.html">← 分析ページへ戻る</a></span></div>
+  <div id="theme-bar"></div>
   <p class="sub">ITM分析ツールの入力項目・分析結果の読み方について説明します。</p>
 
   <h2>このツールでできること</h2>
@@ -205,4 +207,8 @@
     <li>上記を踏まえた上で、自己責任でご利用ください</li>
   </ul>
 </div>
+<script type="module">
+import { initThemeBar } from "./js/theme.js";
+initThemeBar("theme-bar");
+</script>
 </body></html>
