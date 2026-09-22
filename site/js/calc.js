@@ -193,17 +193,16 @@ export const DETAIL_BEFORE_DAYS = 7;
 /**
  * 元Excelに近い、エントリー日ごとの詳細マトリクスを計算する。
  * 各行=1エントリー日について、前7営業日比較(before)と、判定期間分の先読み(after)を持つ。
- * afterは「そのタイプにとって有利な方向を正」とした符号付き乖離率（favorable方向への%）。
+ * afterは権利行使価格に対する生の乖離率（株価/権利行使価格-1）。正=株価が権利行使価格より上、負=下。
  *
  * @param {number[]} closes
  * @param {string[]} dates
- * @param {{ratio:number, itmWhen:'below'|'above', window:number, group:'sell'|'buy'}} params
+ * @param {{ratio:number, window:number}} params
  * @returns {{date:string, before:(number|null)[], after:number[]}[]}
  */
 export function computeDetailMatrix(closes, dates, params) {
-  const { ratio, itmWhen, window, group } = params;
+  const { ratio, window } = params;
   const n = closes.length;
-  const isBelow = itmWhen === "below";
   const rows = [];
 
   for (let i = 0; i + window < n; i++) {
@@ -214,11 +213,7 @@ export function computeDetailMatrix(closes, dates, params) {
     }
     const after = [];
     for (let d = 1; d <= window; d++) {
-      const fwd = closes[i + d] / strike - 1;
-      // itmDirection: 正=ITM方向へどれだけ動いたか。signedFavorable: 正=有利な結果。
-      const itmDirection = isBelow ? -fwd : fwd;
-      const signedFavorable = group === "sell" ? -itmDirection : itmDirection;
-      after.push(signedFavorable);
+      after.push(closes[i + d] / strike - 1);
     }
     rows.push({ date: dates[i], before, after });
   }
