@@ -65,6 +65,7 @@ const AFTER_BANDS = {
 };
 
 function classifyAfter(rawFwd, typeKey) {
+  if (rawFwd === null) return ""; // データなし(集計期間の末尾で先の日付が無い)
   const band = AFTER_BANDS[typeKey] || AFTER_BANDS.put_sell;
   for (const [t, cls] of band.steps) {
     if (band.mode === "gte" ? rawFwd >= t : rawFwd <= t) return cls;
@@ -128,7 +129,7 @@ function renderTable(rows, windowDays, typeKey) {
       `<td class="dm-sticky dm-date">${row.date}</td>` +
       `<td class="dm-num">${row.close.toFixed(2)}</td>` +
       `<td class="dm-num">${row.strike.toFixed(2)}</td>` +
-      `<td class="dm-num">${row.itmDaysRef}</td>`;
+      `<td class="dm-num">${row.itmDaysRef === null ? "―" : row.itmDaysRef}</td>`;
     const beforeCells = beforeOrdered.map((v) => {
       const cls = classifyBefore(v);
       return `<td class="dc ${cls}" title="${row.date}: ${pct(v)}"></td>`;

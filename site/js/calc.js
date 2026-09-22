@@ -198,12 +198,14 @@ export const DETAIL_ITM_REF_DAYS = 30;
  * 各行=1エントリー日について、終値・権利行使価格・30営業日以内のITM日数(参考)・
  * 前7営業日比較(before)・判定期間分の先読み(after)を持つ。
  * afterは権利行使価格に対する生の乖離率（株価/権利行使価格-1）。正=株価が権利行使価格より上、負=下。
+ * 集計期間の全エントリー日を対象とする(判定期間分を差し引かない)。先読みの日数分の
+ * データが無いセルはnull(未確定)になる。
  *
  * @param {number[]} closes
  * @param {string[]} dates
  * @param {{ratio:number, window:number, itmWhen:'below'|'above'}} params
- * @returns {{date:string, close:number, strike:number, itmDaysRef:number,
- *            before:(number|null)[], after:number[]}[]}
+ * @returns {{date:string, close:number, strike:number, itmDaysRef:number|null,
+ *            before:(number|null)[], after:(number|null)[]}[]}
  */
 export function computeDetailMatrix(closes, dates, params) {
   const { ratio, window, itmWhen } = params;
@@ -211,7 +213,7 @@ export function computeDetailMatrix(closes, dates, params) {
   const isBelow = itmWhen === "below";
   const rows = [];
 
-  for (let i = 0; i + window < n; i++) {
+  for (let i = 0; i < n; i++) {
     const close = closes[i];
     const strike = close * ratio;
     const before = [];
@@ -220,13 +222,16 @@ export function computeDetailMatrix(closes, dates, params) {
     }
     const after = [];
     for (let d = 1; d <= window; d++) {
-      after.push(closes[i + d] / strike - 1);
+      after.push(i + d < n ? closes[i + d] / strike - 1 : null);
     }
-    let itmDaysRef = 0;
     const refDays = Math.min(DETAIL_ITM_REF_DAYS, n - 1 - i);
-    for (let d = 1; d <= refDays; d++) {
-      const fwd = closes[i + d] / strike - 1;
-      if (isBelow ? fwd < 0 : fwd > 0) itmDaysRef++;
+    let itmDaysRef = null;
+    if (refDays > 0) {
+      itmDaysRef = 0;
+      for (let d = 1; d <= refDays; d++) {
+        const fwd = closes[i + d] / strike - 1;
+        if (isBelow ? fwd < 0 : fwd > 0) itmDaysRef++;
+      }
     }
     rows.push({ date: dates[i], close, strike, itmDaysRef, before, after });
   }
