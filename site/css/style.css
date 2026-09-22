@@ -127,14 +127,15 @@ button:disabled{opacity:.6;cursor:default}
 .b-match{background:color-mix(in srgb,var(--accent) 22%,transparent);color:var(--accent)}
 .b-nomatch{background:color-mix(in srgb,var(--muted) 14%,transparent);color:var(--muted)}
 
-/* 総合判定バッジ: ヒートマップと同じ考え方で、有利〜不利を色の濃淡7段階で表す */
-.badge.b0{background:color-mix(in srgb,var(--gA) 32%,transparent);color:var(--gA)}
-.badge.b1{background:color-mix(in srgb,var(--gA) 24%,transparent);color:var(--gA)}
-.badge.b2{background:color-mix(in srgb,var(--gA) 16%,transparent);color:var(--gA)}
+/* 総合判定バッジ: 詳細マトリクス・営業日ごとのITM確率チャート・エントリーヒートマップと
+   共通の7段階配色(赤=有利〜紫=不利)。b0が最も有利、b6が最も不利。 */
+.badge.b0{background:color-mix(in srgb,var(--gradRed) 30%,transparent);color:var(--gradRed)}
+.badge.b1{background:color-mix(in srgb,var(--gradOrange) 30%,transparent);color:var(--gradOrange)}
+.badge.b2{background:color-mix(in srgb,var(--gradYellow) 34%,transparent);color:var(--gradYellow)}
 .badge.b3{background:color-mix(in srgb,var(--muted) 16%,transparent);color:var(--muted)}
-.badge.b4{background:color-mix(in srgb,var(--gC) 16%,transparent);color:var(--gC)}
-.badge.b5{background:color-mix(in srgb,var(--gC) 24%,transparent);color:var(--gC)}
-.badge.b6{background:color-mix(in srgb,var(--gC) 32%,transparent);color:var(--gC)}
+.badge.b4{background:color-mix(in srgb,var(--gradLightBlue) 30%,transparent);color:var(--gradLightBlue)}
+.badge.b5{background:color-mix(in srgb,var(--gradBlue) 30%,transparent);color:var(--gradBlue)}
+.badge.b6{background:color-mix(in srgb,var(--gradPurple) 30%,transparent);color:var(--gradPurple)}
 
 .chart{width:100%;height:auto;display:block}
 .chart-title{font-size:12px;color:var(--muted);margin:14px 0 4px}
@@ -149,14 +150,18 @@ button:disabled{opacity:.6;cursor:default}
 #todayCard[hidden]{display:none}
 #conditionCard[hidden]{display:none}
 
+/* エントリー日ごとのヒートマップ: 総合判定バッジ・詳細マトリクスと共通の7段階配色
+   (赤=有利〜紫=不利)。L0が最も有利、L6が最も不利。 */
 .hm-grid{display:flex;flex-wrap:wrap;gap:2px;margin:8px 0}
 .hm-cell{width:11px;height:11px;border-radius:2px;cursor:default}
-.hm-cell.h0{background:var(--line)}
-.hm-cell.h1{background:color-mix(in srgb,var(--gC) 25%,var(--line))}
-.hm-cell.h2{background:color-mix(in srgb,var(--gC) 50%,var(--line))}
-.hm-cell.h3{background:color-mix(in srgb,var(--gC) 75%,var(--line))}
-.hm-cell.h4{background:var(--gC)}
-.hm-legend{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--muted);margin-top:6px}
+.hm-cell.L0{background:var(--gradRed)}
+.hm-cell.L1{background:var(--gradOrange)}
+.hm-cell.L2{background:var(--gradYellow)}
+.hm-cell.L3{background:var(--line)}
+.hm-cell.L4{background:var(--gradLightBlue)}
+.hm-cell.L5{background:var(--gradBlue)}
+.hm-cell.L6{background:var(--gradPurple)}
+.hm-legend{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--muted);margin-top:6px;flex-wrap:wrap}
 .hm-legend .hm-cell{cursor:default}
 
 .disc{margin-top:20px;padding:12px;background:var(--wbg);border:1px solid var(--wbd);

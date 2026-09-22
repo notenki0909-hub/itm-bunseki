@@ -38,6 +38,17 @@ const BADGE_LABELS = {
   buy:  ["激熱", "熱", "好機", "ITM", "OTM", "ピンチ", "大ピンチ"],
 };
 
+// 「有利方向への確率」を0(最も有利)〜6(最も不利)の7段階に変換する。
+// 総合判定バッジだけでなく、営業日ごとのITM確率チャートやエントリー日ごとの
+// ヒートマップも、この同じ関数・しきい値・7段階配色(詳細マトリクスと共通)を使う。
+export function favorableProbToLevel(favorableProb) {
+  if (favorableProb === null || favorableProb === undefined || Number.isNaN(favorableProb)) return null;
+  for (let i = 0; i < BADGE_PROB_THRESHOLDS.length; i++) {
+    if (favorableProb >= BADGE_PROB_THRESHOLDS[i]) return i;
+  }
+  return BADGE_PROB_THRESHOLDS.length; // 6 = 最下段(ピンチ/大ピンチ)
+}
+
 /**
  * @param {number[]} closes 古い順の終値配列
  * @param {{ratio:number, itmWhen:'below'|'above', window:number, group:'sell'|'buy'}} params
@@ -111,14 +122,19 @@ function classifyBadge(overallItmProb, group) {
   // 買い(buy)はITM確率が高いほど有利、売り(sell)はITM確率が低いほど有利なので
   // 「有利方向への確率」に揃えてからしきい値判定する。
   const favorableProb = group === "sell" ? 1 - overallItmProb : overallItmProb;
-  for (let i = 0; i < BADGE_PROB_THRESHOLDS.length; i++) {
-    if (favorableProb >= BADGE_PROB_THRESHOLDS[i]) return { label: labels[i], level: i };
-  }
-  return { label: labels[labels.length - 1], level: labels.length - 1 };
+  const level = favorableProbToLevel(favorableProb);
+  return { label: labels[level], level };
 }
 
 export function typeGroup(typeKey) {
   return typeKey === "put_sell" || typeKey === "call_sell" ? "sell" : "buy";
+}
+
+// 生のITM確率(比率)を、そのタイプにとっての「有利方向への確率」に変換する。
+// 営業日ごとのITM確率チャート・エントリー日ごとのヒートマップでも共通で使う。
+export function toFavorableProb(rawItmProb, group) {
+  if (rawItmProb === null || rawItmProb === undefined || Number.isNaN(rawItmProb)) return null;
+  return group === "sell" ? 1 - rawItmProb : rawItmProb;
 }
 
 /**

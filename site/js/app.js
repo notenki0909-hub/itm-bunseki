@@ -459,8 +459,8 @@ function renderMainAnalysis(t) {
   els.overallProb.textContent = analysis.overallItmProb === null
     ? "―"
     : (analysis.overallItmProb * 100).toFixed(1) + "%";
-  els.chartWrap.innerHTML = renderDayProbChart(analysis.dayProb);
-  els.heatmapWrap.innerHTML = renderEntryHeatmap(analysis.perEntry, t.windowDays);
+  els.chartWrap.innerHTML = renderDayProbChart(analysis.dayProb, typeGroup(t.typeKey));
+  els.heatmapWrap.innerHTML = renderEntryHeatmap(analysis.perEntry, t.windowDays, typeGroup(t.typeKey));
   els.result.hidden = false;
 }
 
