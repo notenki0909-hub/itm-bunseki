@@ -16,25 +16,26 @@ const els = {
   pageSub: document.getElementById("pageSub"),
 };
 
+// 先読み(after)の7段階しきい値。元Excelの条件付き書式(激熱〜ピンチ)に合わせている。
+// 0%が境界: 0%以上(favorable方向)=青(L0〜L4)、0%未満=赤(L5〜L6)。
 function classifyAfter(v) {
-  if (v >= 0.40) return "L0";
-  if (v >= 0.20) return "L1";
-  if (v >= 0.05) return "L2";
-  if (v >= -0.05) return "L3";
-  if (v >= -0.20) return "L4";
-  if (v >= -0.40) return "L5";
-  return "L6";
+  if (v >= 0.40) return "L0"; // 激熱
+  if (v >= 0.30) return "L1"; // 熱
+  if (v >= 0.20) return "L2"; // 好機
+  if (v >= 0.05) return "L3"; // 可もなく不可もなく
+  if (v >= 0) return "L4";    // ひやひや
+  if (v >= -0.05) return "L5"; // ITM
+  return "L6";                 // ピンチ
 }
 
+// 前営業日比較(before)の5段階しきい値。元Excelの条件付き書式(10/0/-5/-10%)に合わせている。
 function classifyBefore(v) {
   if (v === null) return "";
-  if (v >= 0.10) return "U2";
-  if (v >= 0.05) return "U1";
-  if (v > 0) return "U0";
-  if (v === 0) return "Z";
-  if (v > -0.05) return "D0";
-  if (v > -0.10) return "D1";
-  return "D2";
+  if (v > 0.10) return "U1"; // 上昇 10%超
+  if (v >= 0) return "Z";    // 0〜10%: ほぼ変動なし〜小幅上昇
+  if (v >= -0.05) return "D0"; // 下落 -5〜0%
+  if (v >= -0.10) return "D1"; // 下落 -10〜-5%
+  return "D2";                 // 下落 10%超
 }
 
 function pct(v) {

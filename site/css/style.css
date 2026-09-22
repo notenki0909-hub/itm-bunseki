@@ -3,14 +3,17 @@
   --accent:#2563eb;--th:#f3f4f6;--field:#f7f8fa;
   --gA:#166534;--gB:#854d0e;--gC:#b91c1c;
   --wbg:#fff7ed;--wbd:#fed7aa;--wfg:#7c2d12;
+  --favA:#1d4ed8;--favB:#b91c1c;
 }
-/* 意味色(gA/gB/gC=良い/普通/悪い, wbg/wbd/wfg=警告)はアクセント配色プリセットに連動させず、
-   ライト/ダークの2パターンだけ独立に持たせる（プリセットを変えても「緑=有利」等の意味が壊れないように）。*/
+/* 意味色(gA/gB/gC=良い/普通/悪い, wbg/wbd/wfg=警告, favA/favB=詳細マトリクス用の青/赤)は
+   アクセント配色プリセットに連動させず、ライト/ダークの2パターンだけ独立に持たせる
+   （プリセットを変えても「緑=有利」「青=有利」等の意味が壊れないように）。*/
 :root[data-mode="dark"]{
   --bg:#101216;--card:#181b22;--line:#2b303a;--muted:#98a1ad;--fg:#e6e8eb;
   --accent:#6aa4ff;--th:#1e232c;--field:#161a21;
   --gA:#4ade80;--gB:#fbbf24;--gC:#f87171;
   --wbg:#26210f;--wbd:#5a4a1b;--wfg:#e7c06a;
+  --favA:#60a5fa;--favB:#f87171;
 }
 @media (prefers-color-scheme: dark){
   /* JS(head内)が必ずdata-modeを明示設定するため、これはJS無効時のフォールバックとしてのみ働く */
@@ -19,6 +22,7 @@
     --accent:#6aa4ff;--th:#1e232c;--field:#161a21;
     --gA:#4ade80;--gB:#fbbf24;--gC:#f87171;
     --wbg:#26210f;--wbd:#5a4a1b;--wfg:#e7c06a;
+    --favA:#60a5fa;--favB:#f87171;
   }
 }
 
@@ -160,20 +164,20 @@ button:disabled{opacity:.6;cursor:default}
 .dm-table td.dm-date{font-size:10.5px;color:var(--fg);padding:2px 6px;white-space:nowrap;text-align:left}
 .dm-table td.dc{width:16px;height:16px;cursor:default}
 
-/* 先読み(after): そのタイプにとって有利〜不利の7段階 */
-.dc.L0{background:color-mix(in srgb,var(--gA) 55%,var(--card))}
-.dc.L1{background:color-mix(in srgb,var(--gA) 38%,var(--card))}
-.dc.L2{background:color-mix(in srgb,var(--gA) 20%,var(--card))}
-.dc.L3{background:var(--field)}
-.dc.L4{background:color-mix(in srgb,var(--gC) 20%,var(--card))}
-.dc.L5{background:color-mix(in srgb,var(--gC) 38%,var(--card))}
-.dc.L6{background:color-mix(in srgb,var(--gC) 55%,var(--card))}
+/* 先読み(after): 権利行使価格に対する乖離率(0%が境界)。0%以上=有利=青、0%未満=不利=赤。
+   しきい値(40/30/20/5/0/-5%)は元Excelの条件付き書式(激熱〜ピンチの7段階)に合わせている。 */
+.dc.L0{background:color-mix(in srgb,var(--favA) 75%,var(--card))} /* 激熱 >=40% */
+.dc.L1{background:color-mix(in srgb,var(--favA) 58%,var(--card))} /* 熱 30-40% */
+.dc.L2{background:color-mix(in srgb,var(--favA) 42%,var(--card))} /* 好機 20-30% */
+.dc.L3{background:color-mix(in srgb,var(--favA) 26%,var(--card))} /* 可もなく不可もなく 5-20% */
+.dc.L4{background:color-mix(in srgb,var(--favA) 12%,var(--card))} /* ひやひや 0-5% */
+.dc.L5{background:color-mix(in srgb,var(--favB) 22%,var(--card))} /* ITM -5-0% */
+.dc.L6{background:color-mix(in srgb,var(--favB) 55%,var(--card))} /* ピンチ <-5% */
 
-/* 前営業日比較(before): 上昇/下落の7段階 */
-.dc.U2{background:color-mix(in srgb,var(--gA) 50%,var(--card))}
-.dc.U1{background:color-mix(in srgb,var(--gA) 30%,var(--card))}
-.dc.U0{background:color-mix(in srgb,var(--gA) 14%,var(--card))}
-.dc.Z{background:var(--field)}
-.dc.D0{background:color-mix(in srgb,var(--gC) 14%,var(--card))}
-.dc.D1{background:color-mix(in srgb,var(--gC) 30%,var(--card))}
-.dc.D2{background:color-mix(in srgb,var(--gC) 50%,var(--card))}
+/* 前営業日比較(before): 元Excelのしきい値(10/0/-5/-10%)に合わせた5段階。
+   上昇=赤、下落=青（日本の株式チャート慣習：陽線=赤、陰線=青）。 */
+.dc.U1{background:color-mix(in srgb,var(--favB) 55%,var(--card))} /* 上昇 >10% */
+.dc.Z{background:var(--field)} /* 0〜10%: ほぼ変動なし〜小幅上昇(無地) */
+.dc.D0{background:color-mix(in srgb,var(--favA) 22%,var(--card))} /* 下落 -5〜0% */
+.dc.D1{background:color-mix(in srgb,var(--favA) 42%,var(--card))} /* 下落 -10〜-5% */
+.dc.D2{background:color-mix(in srgb,var(--favA) 65%,var(--card))} /* 下落 10%超 */
