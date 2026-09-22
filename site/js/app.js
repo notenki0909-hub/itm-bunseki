@@ -341,11 +341,36 @@ function badgeLevelClass(level) {
   return level === null || level === undefined ? "b-neutral" : `b${level}`;
 }
 
+// 各.stat項目をクリックすると、対応するセクションの直前(data-target先)に説明を表示する。
+// 同じ項目をもう一度クリックすると閉じる(トグル)。
+function setupStatExplain() {
+  document.querySelectorAll(".stat[data-target]").forEach((statEl) => {
+    statEl.addEventListener("click", () => {
+      const targetId = statEl.dataset.target;
+      const box = document.getElementById(targetId);
+      if (!box) return;
+      const alreadyActive = statEl.classList.contains("active");
+      // 同じセクション(同じdata-target)内の他の項目のactive状態だけを解除する
+      document.querySelectorAll(`.stat[data-target="${targetId}"].active`)
+        .forEach((el) => el.classList.remove("active"));
+      if (alreadyActive) {
+        box.hidden = true;
+        box.textContent = "";
+      } else {
+        box.textContent = statEl.dataset.note;
+        box.hidden = false;
+        statEl.classList.add("active");
+      }
+    });
+  });
+}
+
 function init() {
   initTypeOptions();
   initWindowOptions();
   initPeriodOptions();
   initMomentumLookbackOptions();
+  setupStatExplain();
   createTab();
 
   els.analyzeBtn.addEventListener("click", onAnalyze);

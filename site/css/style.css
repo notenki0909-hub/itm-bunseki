@@ -54,17 +54,16 @@ button:disabled{opacity:.6;cursor:default}
 #result[hidden]{display:none}
 .summary{display:flex;gap:14px;flex-wrap:wrap;margin:10px 0 16px;align-items:flex-start}
 .stat{background:var(--field);border:1px solid var(--line);border-radius:8px;
-  padding:8px 14px;min-width:100px;text-align:center}
+  padding:8px 14px;min-width:100px;text-align:center;cursor:pointer}
 .stat b{display:block;font-size:20px}
 .stat span{font-size:11px;color:var(--muted)}
+.stat:hover b{color:var(--accent)}
+.stat.active{border-color:var(--accent)}
 
-/* .stat を <details> にして項目クリックで説明を開閉できるようにする */
-details.stat{cursor:pointer}
-details.stat summary{list-style:none;cursor:pointer}
-details.stat summary::-webkit-details-marker{display:none}
-details.stat .stat-note{margin:8px 0 0;padding-top:8px;border-top:1px dashed var(--line);
-  font-size:11px;color:var(--muted);text-align:left;line-height:1.5;cursor:default}
-details.stat summary:hover b{color:var(--accent)}
+/* 項目クリックで表示される説明。対応するカードの直前(上)に表示される */
+.explain-box{background:var(--info,var(--field));border:1px solid var(--accent);border-radius:8px;
+  padding:10px 12px;margin-bottom:10px;font-size:12px;color:var(--fg);line-height:1.6}
+.explain-box[hidden]{display:none}
 
 .badge{display:inline-block;padding:3px 12px;border-radius:14px;font-size:13px;font-weight:700}
 .b-good{background:color-mix(in srgb,var(--gA) 18%,transparent);color:var(--gA)}
