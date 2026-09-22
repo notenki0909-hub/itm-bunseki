@@ -51,11 +51,23 @@
     <h2 style="margin:0 0 10px;font-size:16px"><span id="symbolLabel"></span> の分析結果</h2>
     <div class="summary">
       <div class="stat"><b id="entryCount">―</b><span>判定件数(日)</span></div>
+      <div class="stat"><b id="itmCount">―</b><span>ITM日数</span></div>
       <div class="stat"><b id="overallProb">―</b><span>期間内ITM確率</span></div>
       <div class="stat"><span class="badge" id="badge">―</span><br><span>総合判定</span></div>
     </div>
     <div class="chart-title">営業日ごとのITM確率</div>
     <div id="chartWrap"></div>
+
+    <div class="chart-title">エントリー日ごとのITM状況（マウスを乗せると日付を表示）</div>
+    <div id="heatmapWrap"></div>
+    <div class="hm-legend">
+      <span>ITM日数:</span>
+      <span class="hm-cell h0"></span><span>0</span>
+      <span class="hm-cell h1"></span>
+      <span class="hm-cell h2"></span>
+      <span class="hm-cell h3"></span>
+      <span class="hm-cell h4"></span><span>多い</span>
+    </div>
   </div>
 
   <div id="conditionCard" class="card" hidden>

@@ -38,14 +38,17 @@ const BADGE_LABELS = {
 /**
  * @param {number[]} closes 古い順の終値配列
  * @param {{ratio:number, itmWhen:'below'|'above', window:number, group:'sell'|'buy'}} params
+ * @param {string[]} [dates] closesと同じ並びの日付文字列(YYYY-MM-DD)。渡すとperEntryに日付が入る
  * @returns {{
  *   entryCount:number,
+ *   itmEntryCount:number,
  *   overallItmProb:number|null,
  *   dayProb:(number|null)[],
- *   badge:string
+ *   badge:string,
+ *   perEntry:{date:string|null, itmDaysInWindow:number}[]
  * }}
  */
-export function computeItmAnalysis(closes, params) {
+export function computeItmAnalysis(closes, params, dates) {
   const { ratio, itmWhen, window, group } = params;
   const n = closes.length;
   const isBelow = itmWhen === "below";
@@ -54,22 +57,24 @@ export function computeItmAnalysis(closes, params) {
   const dayTotalCounts = new Array(window + 1).fill(0);
   let entryCount = 0;
   let entriesItmWithinWindow = 0;
+  const perEntry = [];
 
   for (let i = 0; i + window < n; i++) {
     const strike = closes[i] * ratio;
     if (!(strike > 0)) continue;
     entryCount++;
-    let itmAny = false;
+    let itmDaysInWindow = 0;
     for (let d = 1; d <= window; d++) {
       const fwd = closes[i + d] / strike - 1;
       const itm = isBelow ? fwd < 0 : fwd > 0;
       dayTotalCounts[d]++;
       if (itm) {
         dayItmCounts[d]++;
-        itmAny = true;
+        itmDaysInWindow++;
       }
     }
-    if (itmAny) entriesItmWithinWindow++;
+    if (itmDaysInWindow > 0) entriesItmWithinWindow++;
+    perEntry.push({ date: dates ? dates[i] : null, itmDaysInWindow });
   }
 
   const dayProb = [];
@@ -81,9 +86,11 @@ export function computeItmAnalysis(closes, params) {
 
   return {
     entryCount,
+    itmEntryCount: entriesItmWithinWindow,
     overallItmProb,
     dayProb,
     badge: classifyBadge(overallItmProb, group),
+    perEntry,
   };
 }
 

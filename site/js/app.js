@@ -6,6 +6,7 @@ import {
   computeRecentMomentumStrip, computeMomentum, typeGroup,
 } from "./calc.js";
 import { renderDayProbChart } from "./chart.js";
+import { renderEntryHeatmap } from "./heatmap.js";
 
 // 複数銘柄・複数タイプを切り替えながら見比べられるよう「タブ」単位で状態を持つ。
 // タブの切り替えは常にメモリ上のデータを出し直すだけで、APIへの再アクセスは発生しない。
@@ -39,8 +40,10 @@ const els = {
   result: document.getElementById("result"),
   badge: document.getElementById("badge"),
   entryCount: document.getElementById("entryCount"),
+  itmCount: document.getElementById("itmCount"),
   overallProb: document.getElementById("overallProb"),
   chartWrap: document.getElementById("chartWrap"),
+  heatmapWrap: document.getElementById("heatmapWrap"),
   symbolLabel: document.getElementById("symbolLabel"),
 
   conditionCard: document.getElementById("conditionCard"),
@@ -62,6 +65,7 @@ function newTabState() {
     id: nextTabId++,
     symbol: null,
     closesFull: null, // フェッチした生データ(最大件数)。期間セレクターはこれをローカルでスライスするだけ
+    datesFull: null,  // closesFullと同じ並びの日付文字列
     typeKey: "put_sell",
     ratio: OPTION_TYPES.put_sell.ratio,
     windowDays: DEFAULT_WINDOW,
@@ -211,6 +215,7 @@ async function onAnalyze() {
     const data = await fetchHistory(symbol);
     t.symbol = data.symbol;
     t.closesFull = data.closes;
+    t.datesFull = data.dates;
     setStatus(`${data.symbol} の${data.closes.length}日分の終値を取得しました`);
     renderAll(t);
     renderTabBar();
@@ -238,6 +243,9 @@ function onFormChange() {
 // 集計期間で末尾N件にスライスした配列を返す(ローカル計算のみ。APIは叩かない)
 function periodClosesOf(t) {
   return t.closesFull.slice(-t.periodDays);
+}
+function periodDatesOf(t) {
+  return t.datesFull.slice(-t.periodDays);
 }
 
 function renderAll(t) {
@@ -268,22 +276,25 @@ function renderTodayCard(t) {
 
 function renderMainAnalysis(t) {
   const closes = periodClosesOf(t);
+  const dates = periodDatesOf(t);
   const type = OPTION_TYPES[t.typeKey];
   const analysis = computeItmAnalysis(closes, {
     ratio: t.ratio,
     itmWhen: type.itmWhen,
     window: t.windowDays,
     group: typeGroup(t.typeKey),
-  });
+  }, dates);
 
   els.symbolLabel.textContent = t.symbol;
   els.badge.textContent = analysis.badge;
   els.badge.className = "badge " + badgeClass(analysis.badge);
   els.entryCount.textContent = analysis.entryCount.toLocaleString("ja-JP");
+  els.itmCount.textContent = analysis.itmEntryCount.toLocaleString("ja-JP");
   els.overallProb.textContent = analysis.overallItmProb === null
     ? "―"
     : (analysis.overallItmProb * 100).toFixed(1) + "%";
   els.chartWrap.innerHTML = renderDayProbChart(analysis.dayProb);
+  els.heatmapWrap.innerHTML = renderEntryHeatmap(analysis.perEntry, t.windowDays);
   els.result.hidden = false;
 }
 
