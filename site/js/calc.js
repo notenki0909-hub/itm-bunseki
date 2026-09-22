@@ -144,7 +144,7 @@ export function computeRecentMomentumStrip(closes, maxLookback = 7) {
  * @param {number[]} closes
  * @param {{ratio:number, itmWhen:'below'|'above', window:number,
  *           momentumLookback:number, momentumDirection:'down'|'up', momentumThresholdPct:number}} params
- * @returns {{matchedCount:number, matchedItmProb:number|null}}
+ * @returns {{matchedCount:number, matchedItmCount:number, matchedItmProb:number|null}}
  */
 export function computeConditionalItmAnalysis(closes, params) {
   const { ratio, itmWhen, window, momentumLookback, momentumDirection, momentumThresholdPct } = params;
@@ -176,6 +176,7 @@ export function computeConditionalItmAnalysis(closes, params) {
 
   return {
     matchedCount,
+    matchedItmCount,
     matchedItmProb: matchedCount ? matchedItmCount / matchedCount : null,
   };
 }

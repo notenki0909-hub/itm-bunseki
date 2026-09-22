@@ -54,14 +54,15 @@
   <div id="resultExplain" class="explain-box" hidden></div>
   <div id="result" class="card" hidden>
     <h2 style="margin:0 0 10px;font-size:16px"><span id="symbolLabel"></span> の分析結果</h2>
+    <p class="sub" style="margin:0 0 10px"><b>判定基準：</b>権利行使価格（各エントリー日の終値 × 比率）だけを基準に、集計期間内の<b>全エントリー日</b>でITMになったかを判定します。</p>
     <div class="summary">
       <div class="stat" data-target="resultExplain" data-note="過去のデータの中で、実際に計算できた「取引開始日」の件数です（集計期間 − 判定期間の分だけ確保されます）。">
         <b id="entryCount">―</b><span>判定件数(日)</span></div>
       <div class="stat" data-target="resultExplain" data-note="判定件数のうち、判定期間内に1日でもITMになった「取引開始日」の実数です。ITMが良い結果か悪い結果かは取引タイプにより異なります。">
         <b id="itmCount">―</b><span>ITM発生エントリー数</span></div>
       <div class="stat" data-target="resultExplain" data-note="ITM発生エントリー数 ÷ 判定件数。売り(プット売/コール売)は低いほど、買い(コール買/プット買)は高いほど有利です。">
-        <b id="overallProb">―</b><span>期間内ITM確率</span></div>
-      <div class="stat" data-target="resultExplain" data-note="期間内ITM確率を、そのタイプにとって有利な方向の確率に変換して7段階評価したものです。緑が濃いほど有利、赤が濃いほど不利を表します。">
+        <b id="overallProb">―</b><span>ITM発生エントリー数の割合</span></div>
+      <div class="stat" data-target="resultExplain" data-note="ITM発生エントリー数の割合を、そのタイプにとって有利な方向の確率に変換して7段階評価したものです。緑が濃いほど有利、赤が濃いほど不利を表します。">
         <span class="badge" id="badge">―</span><br><span>総合判定</span></div>
     </div>
     <div class="chart-title">営業日ごとのITM確率</div>
@@ -82,7 +83,7 @@
   <div id="conditionExplain" class="explain-box" hidden></div>
   <div id="conditionCard" class="card" hidden>
     <h2 style="margin:0 0 10px;font-size:16px">エントリー条件で絞り込み</h2>
-    <p class="sub" style="margin:0 0 10px">過去、本日と似た値動き（N営業日比較で一定以上動いた日）に絞って、その後のITM確率を調べます。</p>
+    <p class="sub" style="margin:0 0 10px"><b>判定基準：</b>上の「分析結果」と同じ権利行使価格の基準に加えて、<b>指定した値動き条件に当てはまった日だけ</b>に絞ってエントリーした場合を判定します（分析結果の対象日を、値動き条件でさらに絞り込んだものです）。</p>
     <div class="form-row">
       <div class="field">
         <label for="momentumLookbackSelect">比較営業日数</label>
@@ -103,10 +104,10 @@
     <div class="summary">
       <div class="stat" data-target="conditionExplain" data-note="集計期間（− 判定期間 − 比較営業日数）の中で、指定した値動き条件に当てはまった日数です。">
         <b id="matchedCount">―</b><span>該当日数</span></div>
-      <div class="stat" data-target="conditionExplain" data-note="条件に当てはまった日だけで見た期間内ITM確率です。">
-        <b id="matchedProb">―</b><span>条件付きITM確率</span></div>
-      <div class="stat" data-target="conditionExplain" data-note="条件を付けない場合の期間内ITM確率です（比較用）。">
-        <b id="baselineProb">―</b><span>全体ITM確率(参考)</span></div>
+      <div class="stat" data-target="conditionExplain" data-note="該当日数のうち、判定期間内に1日でもITMになった日の実数です。">
+        <b id="matchedItmCount">―</b><span>ITM発生エントリー数</span></div>
+      <div class="stat" data-target="conditionExplain" data-note="ITM発生エントリー数 ÷ 該当日数。条件に当てはまった日だけで見た割合です。">
+        <b id="matchedProb">―</b><span>ITM発生エントリー数の割合</span></div>
       <div class="stat" data-target="conditionExplain" data-note="今の値動きが、上で指定した条件（比較営業日数・方向・変化率）に当てはまるかどうかです。">
         <span class="badge" id="todayMatchBadge">―</span><br><span>本日はこの条件に該当</span></div>
     </div>

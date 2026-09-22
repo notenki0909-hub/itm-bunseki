@@ -51,8 +51,8 @@ const els = {
   momentumDirectionSelect: document.getElementById("momentumDirectionSelect"),
   momentumThresholdInput: document.getElementById("momentumThresholdInput"),
   matchedCount: document.getElementById("matchedCount"),
+  matchedItmCount: document.getElementById("matchedItmCount"),
   matchedProb: document.getElementById("matchedProb"),
-  baselineProb: document.getElementById("baselineProb"),
   todayMatchBadge: document.getElementById("todayMatchBadge"),
 };
 
@@ -302,12 +302,6 @@ function renderConditionCard(t) {
   const closes = periodClosesOf(t);
   const type = OPTION_TYPES[t.typeKey];
 
-  const baseline = computeItmAnalysis(closes, {
-    ratio: t.ratio,
-    itmWhen: type.itmWhen,
-    window: t.windowDays,
-    group: typeGroup(t.typeKey),
-  });
   const conditional = computeConditionalItmAnalysis(closes, {
     ratio: t.ratio,
     itmWhen: type.itmWhen,
@@ -318,12 +312,10 @@ function renderConditionCard(t) {
   });
 
   els.matchedCount.textContent = conditional.matchedCount.toLocaleString("ja-JP");
+  els.matchedItmCount.textContent = conditional.matchedItmCount.toLocaleString("ja-JP");
   els.matchedProb.textContent = conditional.matchedItmProb === null
     ? "―"
     : (conditional.matchedItmProb * 100).toFixed(1) + "%";
-  els.baselineProb.textContent = baseline.overallItmProb === null
-    ? "―"
-    : (baseline.overallItmProb * 100).toFixed(1) + "%";
 
   const todayMomentum = computeMomentum(closes, closes.length - 1, t.momentumLookback);
   const thresholdFrac = t.momentumThresholdPct / 100;
