@@ -21,8 +21,142 @@ let activeTabId = null;
 //  自サーバーへのリクエストすら発生させないためのもの。ページ再読み込みで消える一時キャッシュ)
 const priceCache = new Map();
 
+// 同一端末での永続化(localStorage)。ページ遷移・リロード・ブラウザ再起動をまたいで
+// タブの状態(取得済みデータ込み)を復元できるようにする。
+const STORAGE_KEY = "itm-tool-state-v1";
+
+// 端末をまたいだ共有用。タブの「設定」だけ(取得済みデータは含めない)をURLに載せる。
+// URLが長くなりすぎるのを避けるため、価格データは含めず、開いた側で再取得させる設計。
+function tabRecipe(t) {
+  return {
+    symbol: t.symbol,
+    typeKey: t.typeKey,
+    ratio: t.ratio,
+    windowDays: t.windowDays,
+    periodDays: t.periodDays,
+    momentumLookback: t.momentumLookback,
+    momentumDirection: t.momentumDirection,
+    momentumThresholdPct: t.momentumThresholdPct,
+  };
+}
+
+function applyRecipe(t, rec) {
+  Object.assign(t, {
+    symbol: rec.symbol ?? t.symbol,
+    typeKey: rec.typeKey || t.typeKey,
+    ratio: rec.ratio ?? t.ratio,
+    windowDays: rec.windowDays ?? t.windowDays,
+    periodDays: rec.periodDays ?? t.periodDays,
+    momentumLookback: rec.momentumLookback ?? t.momentumLookback,
+    momentumDirection: rec.momentumDirection || t.momentumDirection,
+    momentumThresholdPct: rec.momentumThresholdPct ?? t.momentumThresholdPct,
+  });
+}
+
+function persistState() {
+  try {
+    const activeIndex = Math.max(0, tabs.findIndex((t) => t.id === activeTabId));
+    const payload = {
+      activeIndex,
+      tabs: tabs.map((t) => ({
+        ...tabRecipe(t),
+        closesFull: t.closesFull,
+        datesFull: t.datesFull,
+      })),
+    };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+  } catch (e) {
+    // 保存できなくても致命的ではない(プライベートブラウジング等で失敗することがある)ので無視する
+  }
+}
+
+function loadFromSavedState() {
+  let payload;
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return false;
+    payload = JSON.parse(raw);
+  } catch (e) {
+    return false;
+  }
+  if (!payload || !Array.isArray(payload.tabs) || payload.tabs.length === 0) return false;
+
+  for (const rec of payload.tabs) {
+    const t = newTabState();
+    applyRecipe(t, rec);
+    t.closesFull = rec.closesFull || null;
+    t.datesFull = rec.datesFull || null;
+    tabs.push(t);
+  }
+  const idx = Math.min(Math.max(payload.activeIndex || 0, 0), tabs.length - 1);
+  switchTab(tabs[idx].id);
+  return true;
+}
+
+function parseShareParam() {
+  try {
+    const raw = new URLSearchParams(location.search).get("share");
+    if (!raw) return null;
+    // URLSearchParams.get() は自動でデコード済みなので、ここでさらに decodeURIComponent はしない
+    const recipes = JSON.parse(raw);
+    if (!Array.isArray(recipes) || recipes.length === 0) return null;
+    return recipes;
+  } catch (e) {
+    return null;
+  }
+}
+
+async function loadFromShareRecipes(recipes) {
+  for (const rec of recipes) {
+    const t = newTabState();
+    applyRecipe(t, rec);
+    tabs.push(t);
+  }
+  renderTabBar();
+  switchTab(tabs[0].id);
+  setStatus("共有された設定を読み込み中…");
+
+  for (const t of tabs) {
+    if (!t.symbol) continue;
+    try {
+      const data = await fetchHistory(t.symbol);
+      t.closesFull = data.closes;
+      t.datesFull = data.dates;
+    } catch (e) {
+      // このタブだけ取得失敗。「分析する」ボタンで再試行できる
+    }
+  }
+  renderTabBar();
+  const active = activeTab();
+  if (active?.closesFull) renderAll(active);
+  setStatus("共有された設定を読み込みました");
+  persistState();
+  // URLの共有パラメータは読み込み後に消し、通常のURLに戻す
+  history.replaceState(null, "", location.pathname);
+}
+
+function buildShareUrl() {
+  const recipes = tabs.filter((t) => t.symbol).map(tabRecipe);
+  const url = new URL(location.href);
+  url.search = "";
+  // URLSearchParams.set() が自動でエンコードするので、ここで encodeURIComponent はしない
+  url.searchParams.set("share", JSON.stringify(recipes));
+  return url.toString();
+}
+
+async function onShareLink() {
+  const url = buildShareUrl();
+  try {
+    await navigator.clipboard.writeText(url);
+    setStatus("共有リンクをコピーしました");
+  } catch (e) {
+    window.prompt("このリンクをコピーしてください", url);
+  }
+}
+
 const els = {
   tabBar: document.getElementById("tabBar"),
+  shareBtn: document.getElementById("shareBtn"),
   ticker: document.getElementById("ticker"),
   analyzeBtn: document.getElementById("analyzeBtn"),
   typeSelect: document.getElementById("typeSelect"),
@@ -98,6 +232,7 @@ function closeTab(id) {
     switchTab(next.id);
   } else {
     renderTabBar();
+    persistState();
   }
 }
 
@@ -124,6 +259,7 @@ function switchTab(id) {
     els.conditionCard.hidden = true;
   }
   renderTabBar();
+  persistState();
 }
 
 function tabLabel(t) {
@@ -222,6 +358,7 @@ async function onAnalyze() {
     setStatus(`${data.symbol} の${data.closes.length}日分の終値を取得しました`);
     renderAll(t);
     renderTabBar();
+    persistState();
   } catch (e) {
     setStatus(`取得に失敗しました: ${e.message}`, true);
   } finally {
@@ -241,6 +378,7 @@ function onFormChange() {
   t.momentumThresholdPct = Number(els.momentumThresholdInput.value) || 0;
   if (t.closesFull) renderAll(t);
   renderTabBar();
+  persistState();
 }
 
 // 集計期間で末尾N件にスライスした配列を返す(ローカル計算のみ。APIは叩かない)
@@ -370,7 +508,14 @@ function init() {
   initPeriodOptions();
   initMomentumLookbackOptions();
   setupStatExplain();
-  createTab();
+
+  // 復元の優先順位: URLの共有パラメータ > 同一端末の保存状態 > 新規タブ
+  const shareRecipes = parseShareParam();
+  if (shareRecipes) {
+    loadFromShareRecipes(shareRecipes);
+  } else if (!loadFromSavedState()) {
+    createTab();
+  }
 
   els.analyzeBtn.addEventListener("click", onAnalyze);
   els.ticker.addEventListener("keydown", (e) => {
@@ -386,6 +531,7 @@ function init() {
   els.momentumLookbackSelect.addEventListener("change", onFormChange);
   els.momentumDirectionSelect.addEventListener("change", onFormChange);
   els.momentumThresholdInput.addEventListener("input", debounce(onFormChange, 250));
+  els.shareBtn.addEventListener("click", onShareLink);
 }
 
 function debounce(fn, ms) {
