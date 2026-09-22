@@ -287,7 +287,7 @@ function renderMainAnalysis(t) {
 
   els.symbolLabel.textContent = t.symbol;
   els.badge.textContent = analysis.badge;
-  els.badge.className = "badge " + badgeClass(analysis.badge);
+  els.badge.className = "badge " + badgeLevelClass(analysis.badgeLevel);
   els.entryCount.textContent = analysis.entryCount.toLocaleString("ja-JP");
   els.itmCount.textContent = analysis.itmEntryCount.toLocaleString("ja-JP");
   els.overallProb.textContent = analysis.overallItmProb === null
@@ -336,10 +336,9 @@ function renderConditionCard(t) {
   els.conditionCard.hidden = false;
 }
 
-function badgeClass(label) {
-  if (["激熱", "熱", "好機"].includes(label)) return "b-good";
-  if (["ピンチ", "大ピンチ", "ITM"].includes(label)) return "b-bad";
-  return "b-neutral";
+// badgeLevel(0=最も有利〜6=最も不利)をヒートマップ同様の色クラスに変換する
+function badgeLevelClass(level) {
+  return level === null || level === undefined ? "b-neutral" : `b${level}`;
 }
 
 function init() {

@@ -45,6 +45,7 @@ const BADGE_LABELS = {
  *   overallItmProb:number|null,
  *   dayProb:(number|null)[],
  *   badge:string,
+ *   badgeLevel:number|null,
  *   perEntry:{date:string|null, itmDaysInWindow:number}[]
  * }}
  */
@@ -83,27 +84,30 @@ export function computeItmAnalysis(closes, params, dates) {
   }
 
   const overallItmProb = entryCount ? entriesItmWithinWindow / entryCount : null;
+  const { label: badge, level: badgeLevel } = classifyBadge(overallItmProb, group);
 
   return {
     entryCount,
     itmEntryCount: entriesItmWithinWindow,
     overallItmProb,
     dayProb,
-    badge: classifyBadge(overallItmProb, group),
+    badge,
+    badgeLevel,
     perEntry,
   };
 }
 
+// level: 0(最も有利=激熱)〜6(最も不利=ピンチ/大ピンチ)。色の濃淡付けに使う。
 function classifyBadge(overallItmProb, group) {
   const labels = BADGE_LABELS[group] || BADGE_LABELS.sell;
-  if (overallItmProb === null || Number.isNaN(overallItmProb)) return "―";
+  if (overallItmProb === null || Number.isNaN(overallItmProb)) return { label: "―", level: null };
   // 買い(buy)はITM確率が高いほど有利、売り(sell)はITM確率が低いほど有利なので
   // 「有利方向への確率」に揃えてからしきい値判定する。
   const favorableProb = group === "sell" ? 1 - overallItmProb : overallItmProb;
   for (let i = 0; i < BADGE_PROB_THRESHOLDS.length; i++) {
-    if (favorableProb >= BADGE_PROB_THRESHOLDS[i]) return labels[i];
+    if (favorableProb >= BADGE_PROB_THRESHOLDS[i]) return { label: labels[i], level: i };
   }
-  return labels[labels.length - 1];
+  return { label: labels[labels.length - 1], level: labels.length - 1 };
 }
 
 export function typeGroup(typeKey) {
