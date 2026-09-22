@@ -166,7 +166,10 @@ button:disabled{opacity:.6;cursor:default}
 .dm-lgroup-title{width:100%;font-size:11px;color:var(--muted);margin-bottom:2px}
 .dm-litem{display:inline-flex;align-items:center;gap:4px;font-size:11px;color:var(--fg)}
 .dm-litem .dc{display:inline-block;width:14px;height:14px;border-radius:3px;border:1px solid var(--line)}
-.dm-table-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:8px}
+/* 表の中だけでスクロールさせると、行数が多い時に横スクロールバーが画面の一番下(表の最後の行の下)
+   まで見に行かないと出てこず使いづらいため、あえて表からはみ出させて、ブラウザウインドウ自体の
+   横スクロールバー(画面下部に常に表示される)でスクロールできるようにしている。 */
+.dm-table-wrap{border:1px solid var(--line);border-radius:8px}
 .dm-table{border-collapse:collapse;font-size:0}
 .dm-table th,.dm-table td{border:1px solid var(--line);padding:0}
 .dm-table th{background:var(--th);color:var(--muted);font-size:10px;font-weight:600;
