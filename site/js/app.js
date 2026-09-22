@@ -157,31 +157,21 @@ async function onShareLink() {
 
 const DETAIL_HANDOFF_KEY = "itm-detail-handoff";
 
-// 詳細マトリクスページへは、今アクティブなタブが既に持っているデータをそのまま渡す。
-// sessionStorage経由の受け渡しなので、別ページ側での再取得(API呼び出し)は発生しない。
+// 詳細マトリクスページへは、今のタブの設定(レシピ)だけを渡す。詳細マトリクス側でも
+// 銘柄・タイプ・比率・判定期間・集計期間を変更できるようにしたため、価格データそのものは
+// 渡さず、詳細マトリクス側で(KVキャッシュ経由の軽い)再取得をさせる設計にした。
 function onOpenDetail() {
   const t = activeTab();
   if (!t || !t.closesFull) {
     setStatus("先に「分析する」でデータを取得してください", true);
     return;
   }
-  const closes = periodClosesOf(t);
-  const dates = periodDatesOf(t);
-  const handoff = {
-    symbol: t.symbol,
-    typeKey: t.typeKey,
-    ratio: t.ratio,
-    windowDays: t.windowDays,
-    closes,
-    dates,
-  };
   try {
-    sessionStorage.setItem(DETAIL_HANDOFF_KEY, JSON.stringify(handoff));
+    sessionStorage.setItem(DETAIL_HANDOFF_KEY, JSON.stringify(tabRecipe(t)));
   } catch (e) {
-    setStatus("詳細マトリクスの表示に必要なデータを保存できませんでした", true);
-    return;
+    // 保存できなくても致命的ではない(詳細マトリクス側は空の状態から入力すればよい)
   }
-  window.open("detail.html", "_blank");
+  window.location.href = "detail.html";
 }
 
 const els = {

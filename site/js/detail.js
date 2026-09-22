@@ -1,9 +1,40 @@
-import { OPTION_TYPES, DETAIL_BEFORE_DAYS, computeDetailMatrix } from "./calc.js";
+import {
+  OPTION_TYPES, WINDOW_OPTIONS, DEFAULT_WINDOW,
+  PERIOD_OPTIONS, DEFAULT_PERIOD_DAYS,
+  DETAIL_BEFORE_DAYS, DETAIL_ITM_REF_DAYS, computeDetailMatrix,
+} from "./calc.js";
 import { initThemeBar } from "./theme.js";
 
 const HANDOFF_KEY = "itm-detail-handoff";
+// 31日後以降を初期状態で折りたたむ境界。元Excelに列数の上限はないが、判定期間を
+// 最大150営業日まで許容すると列が非常に多くなるため、UI上の見やすさのために設ける。
+const COLLAPSE_AFTER_DAY = 30;
+
+// このページ単独でも銘柄を切り替えられるよう、分析ページ(app.js)と同じ
+// フェッチ・キャッシュの仕組みを持つ(ページを跨いだメモリキャッシュではないが、
+// サーバー側KVキャッシュのおかげで同一銘柄の再取得は軽い)。
+const priceCache = new Map();
+
+const state = {
+  symbol: null,
+  closesFull: null,
+  datesFull: null,
+  typeKey: "put_sell",
+  ratio: OPTION_TYPES.put_sell.ratio,
+  windowDays: DEFAULT_WINDOW,
+  periodDays: DEFAULT_PERIOD_DAYS,
+  expanded: false,
+};
 
 const els = {
+  ticker: document.getElementById("ticker"),
+  typeSelect: document.getElementById("typeSelect"),
+  ratioInput: document.getElementById("ratioInput"),
+  windowSelect: document.getElementById("windowSelect"),
+  periodSelect: document.getElementById("periodSelect"),
+  analyzeBtn: document.getElementById("analyzeBtn"),
+  status: document.getElementById("status"),
+
   emptyState: document.getElementById("emptyState"),
   detailWrap: document.getElementById("detailWrap"),
   detailSymbol: document.getElementById("detailSymbol"),
@@ -13,6 +44,8 @@ const els = {
   detailRows: document.getElementById("detailRows"),
   dmTable: document.getElementById("dmTable"),
   afterLegend: document.getElementById("afterLegend"),
+  expandRow: document.getElementById("expandRow"),
+  expandBtn: document.getElementById("expandBtn"),
   pageTitle: document.getElementById("pageTitle"),
   pageSub: document.getElementById("pageSub"),
 };
@@ -79,62 +112,215 @@ function pct(v) {
 }
 
 function renderTable(rows, windowDays, typeKey) {
-  const headCells = ["日付"];
-  for (let k = DETAIL_BEFORE_DAYS; k >= 1; k--) headCells.push(`${k}日前`);
-  for (let d = 1; d <= windowDays; d++) headCells.push(`${d}日後`);
-  const head = `<tr><th class="dm-sticky">${headCells[0]}</th>` +
-    headCells.slice(1).map((h) => `<th>${h}</th>`).join("") + "</tr>";
+  const fixedHeads = ["日付", "終値", "権利行使価格", `ITM日数(${DETAIL_ITM_REF_DAYS}日以内)`];
+  const beforeHeads = [];
+  for (let k = DETAIL_BEFORE_DAYS; k >= 1; k--) beforeHeads.push({ text: `${k}日前`, extra: false });
+  const afterHeads = [];
+  for (let d = 1; d <= windowDays; d++) afterHeads.push({ text: `${d}日後`, extra: d > COLLAPSE_AFTER_DAY });
+
+  const head =
+    fixedHeads.map((h, idx) => `<th class="${idx === 0 ? "dm-sticky" : ""}">${h}</th>`).join("") +
+    [...beforeHeads, ...afterHeads].map((h) => `<th class="${h.extra ? "dm-extra" : ""}">${h.text}</th>`).join("");
 
   const bodyRows = rows.map((row) => {
     const beforeOrdered = [...row.before].reverse(); // 7日前→1日前の順で表示
+    const fixedCells =
+      `<td class="dm-sticky dm-date">${row.date}</td>` +
+      `<td class="dm-num">${row.close.toFixed(2)}</td>` +
+      `<td class="dm-num">${row.strike.toFixed(2)}</td>` +
+      `<td class="dm-num">${row.itmDaysRef}</td>`;
     const beforeCells = beforeOrdered.map((v) => {
       const cls = classifyBefore(v);
       return `<td class="dc ${cls}" title="${row.date}: ${pct(v)}"></td>`;
     }).join("");
     const afterCells = row.after.map((rawFwd, idx) => {
       const cls = classifyAfter(rawFwd, typeKey);
-      return `<td class="dc ${cls}" title="${row.date} ${idx + 1}日後: 権利行使価格比 ${pct(rawFwd)}"></td>`;
+      const extraCls = idx + 1 > COLLAPSE_AFTER_DAY ? " dm-extra" : "";
+      return `<td class="dc ${cls}${extraCls}" title="${row.date} ${idx + 1}日後: 権利行使価格比 ${pct(rawFwd)}"></td>`;
     }).join("");
-    return `<tr><td class="dm-sticky dm-date">${row.date}</td>${beforeCells}${afterCells}</tr>`;
+    return `<tr>${fixedCells}${beforeCells}${afterCells}</tr>`;
   }).join("");
 
-  return `<thead>${head}</thead><tbody>${bodyRows}</tbody>`;
+  return `<thead><tr>${head}</tr></thead><tbody>${bodyRows}</tbody>`;
 }
 
-function init() {
-  initThemeBar("theme-bar");
+function updateExpandUI(windowDays) {
+  if (windowDays <= COLLAPSE_AFTER_DAY) {
+    els.expandRow.hidden = true;
+    return;
+  }
+  els.expandRow.hidden = false;
+  const hiddenCount = windowDays - COLLAPSE_AFTER_DAY;
+  els.expandBtn.textContent = state.expanded
+    ? `▲ ${COLLAPSE_AFTER_DAY + 1}日後以降を隠す`
+    : `▼ ${COLLAPSE_AFTER_DAY + 1}日後以降を表示（${hiddenCount}列）`;
+  els.dmTable.classList.toggle("dm-show-extra", state.expanded);
+}
 
-  let handoff;
+function setStatus(msg, isError) {
+  els.status.textContent = msg || "";
+  els.status.classList.toggle("err", !!isError);
+}
+
+async function fetchHistory(symbol) {
+  if (priceCache.has(symbol)) return priceCache.get(symbol);
+  const res = await fetch(`/api/history?symbol=${encodeURIComponent(symbol)}`);
+  const data = await res.json();
+  if (!res.ok || data.error) throw new Error(data.error || `HTTP ${res.status}`);
+  priceCache.set(symbol, data);
+  return data;
+}
+
+function periodClosesOf() {
+  return state.closesFull.slice(-state.periodDays);
+}
+function periodDatesOf() {
+  return state.datesFull.slice(-state.periodDays);
+}
+
+function render() {
+  const type = OPTION_TYPES[state.typeKey];
+  const closes = periodClosesOf();
+  const dates = periodDatesOf();
+  const rows = computeDetailMatrix(closes, dates, {
+    ratio: state.ratio,
+    window: state.windowDays,
+    itmWhen: type.itmWhen,
+  });
+
+  els.pageTitle.textContent = `${state.symbol} の詳細マトリクス`;
+  els.pageSub.textContent = `${type.label}・権利行使価格の比率${state.ratio}・判定期間${state.windowDays}営業日での、エントリー日ごとの値動き一覧です。`;
+  els.detailSymbol.textContent = state.symbol;
+  els.detailType.textContent = type.label;
+  els.detailRatio.textContent = state.ratio;
+  els.detailWindow.textContent = `${state.windowDays}営業日`;
+  els.detailRows.textContent = rows.length.toLocaleString("ja-JP");
+
+  els.dmTable.innerHTML = renderTable(rows, state.windowDays, state.typeKey);
+  els.afterLegend.innerHTML = renderAfterLegend(state.typeKey);
+  updateExpandUI(state.windowDays);
+
+  els.emptyState.hidden = true;
+  els.detailWrap.hidden = false;
+}
+
+async function onAnalyze() {
+  const symbol = els.ticker.value.trim().toUpperCase();
+  if (!symbol) {
+    setStatus("ティッカーを入力してください", true);
+    return;
+  }
+  readForm();
+  els.analyzeBtn.disabled = true;
+  setStatus("取得中…");
+  try {
+    const data = await fetchHistory(symbol);
+    state.symbol = data.symbol;
+    state.closesFull = data.closes;
+    state.datesFull = data.dates;
+    setStatus(`${data.symbol} の${data.closes.length}日分の終値を取得しました`);
+    render();
+  } catch (e) {
+    setStatus(`取得に失敗しました: ${e.message}`, true);
+  } finally {
+    els.analyzeBtn.disabled = false;
+  }
+}
+
+function readForm() {
+  state.typeKey = els.typeSelect.value;
+  state.ratio = Number(els.ratioInput.value) || OPTION_TYPES[state.typeKey].ratio;
+  state.windowDays = Number(els.windowSelect.value) || DEFAULT_WINDOW;
+  state.periodDays = Number(els.periodSelect.value) || DEFAULT_PERIOD_DAYS;
+}
+
+function onFormChange() {
+  readForm();
+  if (state.closesFull) {
+    state.expanded = false;
+    render();
+  }
+}
+
+function initTypeOptions() {
+  els.typeSelect.innerHTML = Object.entries(OPTION_TYPES)
+    .map(([key, t]) => `<option value="${key}">${t.label}</option>`)
+    .join("");
+}
+function initWindowOptions() {
+  els.windowSelect.innerHTML = WINDOW_OPTIONS
+    .map((d) => `<option value="${d}">${d}営業日</option>`)
+    .join("");
+}
+function initPeriodOptions() {
+  els.periodSelect.innerHTML = PERIOD_OPTIONS
+    .map((p) => `<option value="${p.days}">${p.label}</option>`)
+    .join("");
+}
+
+function applyStateToForm() {
+  els.ticker.value = state.symbol || "";
+  els.typeSelect.value = state.typeKey;
+  els.ratioInput.value = state.ratio;
+  els.windowSelect.value = String(state.windowDays);
+  els.periodSelect.value = String(state.periodDays);
+}
+
+async function init() {
+  initThemeBar("theme-bar");
+  initTypeOptions();
+  initWindowOptions();
+  initPeriodOptions();
+
+  let handoff = null;
   try {
     handoff = JSON.parse(sessionStorage.getItem(HANDOFF_KEY) || "null");
   } catch (e) {
     handoff = null;
   }
+  // 分析ページからの引き継ぎは「設定(レシピ)」だけで、価格データは含まない。
+  // ここで改めて取得することで、詳細マトリクス側で銘柄や集計期間を変えても
+  // 常に整合したデータで再計算できるようにしている(KVキャッシュがあるので軽い)。
+  sessionStorage.removeItem(HANDOFF_KEY);
 
-  if (!handoff || !Array.isArray(handoff.closes) || !Array.isArray(handoff.dates)) {
+  if (handoff && handoff.symbol) {
+    Object.assign(state, {
+      symbol: handoff.symbol,
+      typeKey: handoff.typeKey || state.typeKey,
+      ratio: handoff.ratio ?? state.ratio,
+      windowDays: handoff.windowDays ?? state.windowDays,
+      periodDays: handoff.periodDays ?? state.periodDays,
+    });
+    applyStateToForm();
+    await onAnalyze();
+  } else {
+    applyStateToForm();
     els.emptyState.hidden = false;
-    return;
   }
 
-  const typeKey = OPTION_TYPES[handoff.typeKey] ? handoff.typeKey : "put_sell";
-  const type = OPTION_TYPES[typeKey];
-  const windowDays = handoff.windowDays;
-  const rows = computeDetailMatrix(handoff.closes, handoff.dates, {
-    ratio: handoff.ratio,
-    window: windowDays,
+  els.analyzeBtn.addEventListener("click", onAnalyze);
+  els.ticker.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") onAnalyze();
   });
+  els.typeSelect.addEventListener("change", () => {
+    els.ratioInput.value = OPTION_TYPES[els.typeSelect.value].ratio;
+    onFormChange();
+  });
+  els.ratioInput.addEventListener("input", debounce(onFormChange, 250));
+  els.windowSelect.addEventListener("change", onFormChange);
+  els.periodSelect.addEventListener("change", onFormChange);
+  els.expandBtn.addEventListener("click", () => {
+    state.expanded = !state.expanded;
+    updateExpandUI(state.windowDays);
+  });
+}
 
-  els.pageTitle.textContent = `${handoff.symbol} の詳細マトリクス`;
-  els.pageSub.textContent = `${type.label}・権利行使価格の比率${handoff.ratio}・判定期間${windowDays}営業日での、エントリー日ごとの値動き一覧です。`;
-  els.detailSymbol.textContent = handoff.symbol;
-  els.detailType.textContent = type.label;
-  els.detailRatio.textContent = handoff.ratio;
-  els.detailWindow.textContent = `${windowDays}営業日`;
-  els.detailRows.textContent = rows.length.toLocaleString("ja-JP");
-
-  els.dmTable.innerHTML = renderTable(rows, windowDays, typeKey);
-  els.afterLegend.innerHTML = renderAfterLegend(typeKey);
-  els.detailWrap.hidden = false;
+function debounce(fn, ms) {
+  let timer = null;
+  return (...args) => {
+    clearTimeout(timer);
+    timer = setTimeout(() => fn(...args), ms);
+  };
 }
 
 init();

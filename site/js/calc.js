@@ -11,7 +11,7 @@ export const OPTION_TYPES = {
   put_buy:   { label: "プット買", ratio: 0.95, itmWhen: "below" },
 };
 
-export const WINDOW_OPTIONS = [10, 20, 30, 60, 90];
+export const WINDOW_OPTIONS = [10, 20, 30, 60, 90, 120, 150];
 export const DEFAULT_WINDOW = 30;
 
 // 集計期間（「過去」とみなす営業日数）の選択肢。1営業日=1本のデータ。
@@ -189,24 +189,31 @@ export function computeConditionalItmAnalysis(closes, params) {
 }
 
 export const DETAIL_BEFORE_DAYS = 7;
+// 「30営業日以内のITM日数」参考列の固定日数。判定期間(window)の選択値とは独立。元Excelの
+// 「30営業日以内のP売ITM日数」列に合わせている。
+export const DETAIL_ITM_REF_DAYS = 30;
 
 /**
  * 元Excelに近い、エントリー日ごとの詳細マトリクスを計算する。
- * 各行=1エントリー日について、前7営業日比較(before)と、判定期間分の先読み(after)を持つ。
+ * 各行=1エントリー日について、終値・権利行使価格・30営業日以内のITM日数(参考)・
+ * 前7営業日比較(before)・判定期間分の先読み(after)を持つ。
  * afterは権利行使価格に対する生の乖離率（株価/権利行使価格-1）。正=株価が権利行使価格より上、負=下。
  *
  * @param {number[]} closes
  * @param {string[]} dates
- * @param {{ratio:number, window:number}} params
- * @returns {{date:string, before:(number|null)[], after:number[]}[]}
+ * @param {{ratio:number, window:number, itmWhen:'below'|'above'}} params
+ * @returns {{date:string, close:number, strike:number, itmDaysRef:number,
+ *            before:(number|null)[], after:number[]}[]}
  */
 export function computeDetailMatrix(closes, dates, params) {
-  const { ratio, window } = params;
+  const { ratio, window, itmWhen } = params;
   const n = closes.length;
+  const isBelow = itmWhen === "below";
   const rows = [];
 
   for (let i = 0; i + window < n; i++) {
-    const strike = closes[i] * ratio;
+    const close = closes[i];
+    const strike = close * ratio;
     const before = [];
     for (let k = 1; k <= DETAIL_BEFORE_DAYS; k++) {
       before.push(computeMomentum(closes, i, k));
@@ -215,7 +222,13 @@ export function computeDetailMatrix(closes, dates, params) {
     for (let d = 1; d <= window; d++) {
       after.push(closes[i + d] / strike - 1);
     }
-    rows.push({ date: dates[i], before, after });
+    let itmDaysRef = 0;
+    const refDays = Math.min(DETAIL_ITM_REF_DAYS, n - 1 - i);
+    for (let d = 1; d <= refDays; d++) {
+      const fwd = closes[i + d] / strike - 1;
+      if (isBelow ? fwd < 0 : fwd > 0) itmDaysRef++;
+    }
+    rows.push({ date: dates[i], close, strike, itmDaysRef, before, after });
   }
   return rows;
 }

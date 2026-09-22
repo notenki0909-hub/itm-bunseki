@@ -7,10 +7,37 @@
 <div class="wrap wrap-wide">
   <div class="topbar"><h1 id="pageTitle">詳細マトリクス</h1><span class="pagenav"><a href="index.html">← 分析ページへ戻る</a></span></div>
   <div id="theme-bar"></div>
-  <p class="sub" id="pageSub">元のExcelシートに近い形式で、エントリー日ごとの値動きを一覧表示します。</p>
+  <p class="sub" id="pageSub">元のExcelシートに近い形式で、エントリー日ごとの値動きを一覧表示します。銘柄・取引タイプ・権利行使価格の比率・判定期間・集計期間はこのページで変更できます。</p>
+
+  <div class="card">
+    <div class="form-row">
+      <div class="field">
+        <label for="ticker">ティッカー</label>
+        <input id="ticker" type="text" placeholder="AAPL" autocomplete="off">
+      </div>
+      <div class="field">
+        <label for="typeSelect">取引タイプ</label>
+        <select id="typeSelect"></select>
+      </div>
+      <div class="field">
+        <label for="ratioInput">権利行使価格の比率</label>
+        <input id="ratioInput" type="number" step="0.01" min="0.01">
+      </div>
+      <div class="field">
+        <label for="windowSelect">判定期間</label>
+        <select id="windowSelect"></select>
+      </div>
+      <div class="field">
+        <label for="periodSelect">集計期間</label>
+        <select id="periodSelect"></select>
+      </div>
+      <button id="analyzeBtn" type="button">表示する</button>
+    </div>
+    <div id="status"></div>
+  </div>
 
   <div id="emptyState" class="card" hidden>
-    <p class="sub" style="margin:0">表示するデータがありません。分析ページで銘柄を分析してから、分析結果の「詳細マトリクスを別ページで見る」を開いてください。</p>
+    <p class="sub" style="margin:0">ティッカーを入力して「表示する」を押してください。分析ページの「詳細マトリクスを別ページで見る」から開いた場合は、その時の設定が自動で反映されます。</p>
   </div>
 
   <div id="detailWrap" class="card" hidden>
@@ -25,6 +52,9 @@
       <span class="dm-lgroup"><span>前営業日比（下落10%超</span><span class="dc D2"></span>〜<span class="dc D0"></span>0%〜<span class="dc U1"></span>上昇10%超）</span>
     </div>
     <div class="dm-legend dm-legend-after" id="afterLegend"></div>
+    <p id="expandRow" class="dm-expand" hidden>
+      <button id="expandBtn" type="button" class="link-btn"></button>
+    </p>
     <div class="dm-table-wrap">
       <table class="dm-table" id="dmTable"></table>
     </div>
@@ -32,7 +62,9 @@
 
   <div class="disc">
     ・セルにマウスを乗せると、正確な変動率が表示されます。<br>
+    ・「終値」「権利行使価格」はそのエントリー日時点の値です。「ITM日数(30営業日以内)」は判定期間の選択に関わらず、常に翌30営業日を基準にした参考値です（元Excelの列に合わせています）。<br>
     ・「前営業日比」は赤が上昇、青が下落を表します。「先読み」のツールチップの数値は権利行使価格からの乖離率（＋は権利行使価格より上、－は下）です。色は元のExcelシートの条件付き書式（赤→オレンジ→黄→塗りなし→水色→青→紫の7段階）をタイプ(プット売/コール売/コール買/プット買)ごとのしきい値そのままに再現しており、赤に近いほど有利、紫に近いほど不利です。しきい値は上の凡例を参照してください。<br>
+    ・判定期間が31営業日以上の場合、31日後以降の列は初期状態で折りたたまれています。上のリンクから表示できます。<br>
     ・過去の値動きから機械的に算出したものであり、将来を保証するものではありません。自己責任でご利用ください。
   </div>
 </div>

@@ -174,10 +174,15 @@ button:disabled{opacity:.6;cursor:default}
 .dm-table th.dm-sticky,.dm-table td.dm-sticky{position:sticky;left:0;background:var(--card);
   z-index:1;box-shadow:1px 0 0 var(--line)}
 .dm-table td.dm-date{font-size:10.5px;color:var(--fg);padding:2px 6px;white-space:nowrap;text-align:left}
+.dm-table td.dm-num{font-size:10.5px;color:var(--fg);padding:2px 6px;white-space:nowrap;text-align:right}
 .dm-table td.dc{width:16px;height:16px;cursor:default}
 
-/* 先読み(after): 権利行使価格に対する乖離率(0%が境界)。0%以上=有利=青、0%未満=不利=赤。
-   しきい値(40/30/20/5/0/-5%)は元Excelの条件付き書式(激熱〜ピンチの7段階)に合わせている。 */
+/* 判定期間31日後以降の列。初期状態では折りたたみ、expandBtnクリックでdm-show-extraが
+   付いたときだけ表示する(判定期間を最大150日まで許容すると列数が多くなるため)。 */
+.dm-table th.dm-extra,.dm-table td.dc.dm-extra{display:none}
+.dm-table.dm-show-extra th.dm-extra,.dm-table.dm-show-extra td.dc.dm-extra{display:table-cell}
+.dm-expand{margin:0 0 8px}
+
 /* 先読み(after)7段階。元Excelの条件付き書式の配色(赤→オレンジ→黄→塗りなし→水色→青→紫)を
    そのまま踏襲。L0が最も有利、L6が最も不利。しきい値自体はタイプごとに異なる(js/detail.js)。 */
 .dc.L0{background:color-mix(in srgb,var(--gradRed) 75%,var(--card))}
