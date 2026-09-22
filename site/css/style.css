@@ -166,13 +166,13 @@ button:disabled{opacity:.6;cursor:default}
 
 /* 先読み(after): 権利行使価格に対する乖離率(0%が境界)。0%以上=有利=青、0%未満=不利=赤。
    しきい値(40/30/20/5/0/-5%)は元Excelの条件付き書式(激熱〜ピンチの7段階)に合わせている。 */
-.dc.L0{background:color-mix(in srgb,var(--favA) 75%,var(--card))} /* 激熱 >=40% */
-.dc.L1{background:color-mix(in srgb,var(--favA) 58%,var(--card))} /* 熱 30-40% */
-.dc.L2{background:color-mix(in srgb,var(--favA) 42%,var(--card))} /* 好機 20-30% */
-.dc.L3{background:color-mix(in srgb,var(--favA) 26%,var(--card))} /* 可もなく不可もなく 5-20% */
-.dc.L4{background:color-mix(in srgb,var(--favA) 12%,var(--card))} /* ひやひや 0-5% */
-.dc.L5{background:color-mix(in srgb,var(--favB) 22%,var(--card))} /* ITM -5-0% */
-.dc.L6{background:color-mix(in srgb,var(--favB) 55%,var(--card))} /* ピンチ <-5% */
+.dc.L0{background:color-mix(in srgb,var(--favB) 75%,var(--card))} /* 激熱 >=40%(有利) */
+.dc.L1{background:color-mix(in srgb,var(--favB) 58%,var(--card))} /* 熱 30-40% */
+.dc.L2{background:color-mix(in srgb,var(--favB) 42%,var(--card))} /* 好機 20-30% */
+.dc.L3{background:color-mix(in srgb,var(--favB) 26%,var(--card))} /* 可もなく不可もなく 5-20% */
+.dc.L4{background:color-mix(in srgb,var(--favB) 12%,var(--card))} /* ひやひや 0-5% */
+.dc.L5{background:color-mix(in srgb,var(--favA) 22%,var(--card))} /* ITM -5-0%(不利) */
+.dc.L6{background:color-mix(in srgb,var(--favA) 55%,var(--card))} /* ピンチ <-5% */
 
 /* 前営業日比較(before): 元Excelのしきい値(10/0/-5/-10%)に合わせた5段階。
    上昇=赤、下落=青（日本の株式チャート慣習：陽線=赤、陰線=青）。 */

@@ -1,4 +1,4 @@
-import { OPTION_TYPES, DETAIL_BEFORE_DAYS, computeDetailMatrix } from "./calc.js";
+import { OPTION_TYPES, DETAIL_BEFORE_DAYS, computeDetailMatrix, typeGroup } from "./calc.js";
 import { initThemeBar } from "./theme.js";
 
 const HANDOFF_KEY = "itm-detail-handoff";
@@ -17,8 +17,8 @@ const els = {
 };
 
 // 先読み(after)の7段階しきい値。元Excelの条件付き書式(激熱〜ピンチ)に合わせている。
-// v=権利行使価格から見てOTM方向への乖離率(正=OTM/青、負=ITM/赤)。
-// 0%が境界: 0%以上(OTM側)=青(L0〜L4)、0%未満(ITM側)=赤(L5〜L6)。
+// v=そのタイプ(売り/買い)にとって有利な方向への乖離率(正=有利/赤、負=不利/青)。
+// 0%が境界: 0%以上(有利方向)=赤(L0〜L4)、0%未満(不利方向)=青(L5〜L6)。
 function classifyAfter(v) {
   if (v >= 0.40) return "L0"; // 激熱
   if (v >= 0.30) return "L1"; // 熱
@@ -30,11 +30,14 @@ function classifyAfter(v) {
 }
 
 // rawFwd(株価/権利行使価格-1、正=株価が権利行使価格より上)から、
-// itmWhenに応じてOTM方向への乖離率(classifyAfter用)を導く。
-// call(itmWhen=above): ITM=株価が上=rawFwd正 → OTM方向は負なので符号反転。
-// put(itmWhen=below): ITM=株価が下=rawFwd負 → OTM方向は正のrawFwdそのまま。
-function toOtmDirection(rawFwd, isBelow) {
-  return isBelow ? rawFwd : -rawFwd;
+// そのタイプにとって有利な方向への乖離率(classifyAfter用)を導く。
+// プット売：株価が上がってほしい→ATM以上(rawFwd>=0)が有利。
+// プット買：株価が下がってほしい→ATM未満(rawFwd<0)が有利。
+// コール売：株価が下がってほしい→ATM未満(rawFwd<0)が有利。
+// コール買：株価が上がってほしい→ATM以上(rawFwd>=0)が有利。
+function toFavorableDirection(rawFwd, isBelow, isSell) {
+  const itmDirection = isBelow ? -rawFwd : rawFwd; // 正=ITM方向
+  return isSell ? -itmDirection : itmDirection;    // 正=有利方向
 }
 
 // 前営業日比較(before)の5段階しきい値。元Excelの条件付き書式(10/0/-5/-10%)に合わせている。
@@ -51,7 +54,7 @@ function pct(v) {
   return v === null ? "―" : (v >= 0 ? "+" : "") + (v * 100).toFixed(1) + "%";
 }
 
-function renderTable(rows, windowDays, isBelow) {
+function renderTable(rows, windowDays, isBelow, isSell) {
   const headCells = ["日付"];
   for (let k = DETAIL_BEFORE_DAYS; k >= 1; k--) headCells.push(`${k}日前`);
   for (let d = 1; d <= windowDays; d++) headCells.push(`${d}日後`);
@@ -65,7 +68,7 @@ function renderTable(rows, windowDays, isBelow) {
       return `<td class="dc ${cls}" title="${row.date}: ${pct(v)}"></td>`;
     }).join("");
     const afterCells = row.after.map((rawFwd, idx) => {
-      const cls = classifyAfter(toOtmDirection(rawFwd, isBelow));
+      const cls = classifyAfter(toFavorableDirection(rawFwd, isBelow, isSell));
       return `<td class="dc ${cls}" title="${row.date} ${idx + 1}日後: 権利行使価格比 ${pct(rawFwd)}"></td>`;
     }).join("");
     return `<tr><td class="dm-sticky dm-date">${row.date}</td>${beforeCells}${afterCells}</tr>`;
@@ -92,6 +95,7 @@ function init() {
   const type = OPTION_TYPES[handoff.typeKey] || OPTION_TYPES.put_sell;
   const windowDays = handoff.windowDays;
   const isBelow = type.itmWhen === "below";
+  const isSell = typeGroup(handoff.typeKey) === "sell";
   const rows = computeDetailMatrix(handoff.closes, handoff.dates, {
     ratio: handoff.ratio,
     window: windowDays,
@@ -105,7 +109,7 @@ function init() {
   els.detailWindow.textContent = `${windowDays}営業日`;
   els.detailRows.textContent = rows.length.toLocaleString("ja-JP");
 
-  els.dmTable.innerHTML = renderTable(rows, windowDays, isBelow);
+  els.dmTable.innerHTML = renderTable(rows, windowDays, isBelow, isSell);
   els.detailWrap.hidden = false;
 }
 
