@@ -155,9 +155,39 @@ async function onShareLink() {
   }
 }
 
+const DETAIL_HANDOFF_KEY = "itm-detail-handoff";
+
+// 詳細マトリクスページへは、今アクティブなタブが既に持っているデータをそのまま渡す。
+// sessionStorage経由の受け渡しなので、別ページ側での再取得(API呼び出し)は発生しない。
+function onOpenDetail() {
+  const t = activeTab();
+  if (!t || !t.closesFull) {
+    setStatus("先に「分析する」でデータを取得してください", true);
+    return;
+  }
+  const closes = periodClosesOf(t);
+  const dates = periodDatesOf(t);
+  const handoff = {
+    symbol: t.symbol,
+    typeKey: t.typeKey,
+    ratio: t.ratio,
+    windowDays: t.windowDays,
+    closes,
+    dates,
+  };
+  try {
+    sessionStorage.setItem(DETAIL_HANDOFF_KEY, JSON.stringify(handoff));
+  } catch (e) {
+    setStatus("詳細マトリクスの表示に必要なデータを保存できませんでした", true);
+    return;
+  }
+  window.open("detail.html", "_blank");
+}
+
 const els = {
   tabBar: document.getElementById("tabBar"),
   shareBtn: document.getElementById("shareBtn"),
+  openDetailBtn: document.getElementById("openDetailBtn"),
   ticker: document.getElementById("ticker"),
   analyzeBtn: document.getElementById("analyzeBtn"),
   typeSelect: document.getElementById("typeSelect"),
@@ -534,6 +564,7 @@ function init() {
   els.momentumDirectionSelect.addEventListener("change", onFormChange);
   els.momentumThresholdInput.addEventListener("input", debounce(onFormChange, 250));
   els.shareBtn.addEventListener("click", onShareLink);
+  els.openDetailBtn.addEventListener("click", onOpenDetail);
 }
 
 function debounce(fn, ms) {

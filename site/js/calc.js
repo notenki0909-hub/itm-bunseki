@@ -187,3 +187,40 @@ export function computeConditionalItmAnalysis(closes, params) {
     matchedItmProb: matchedCount ? matchedItmCount / matchedCount : null,
   };
 }
+
+export const DETAIL_BEFORE_DAYS = 7;
+
+/**
+ * 元Excelに近い、エントリー日ごとの詳細マトリクスを計算する。
+ * 各行=1エントリー日について、前7営業日比較(before)と、判定期間分の先読み(after)を持つ。
+ * afterは「そのタイプにとって有利な方向を正」とした符号付き乖離率（favorable方向への%）。
+ *
+ * @param {number[]} closes
+ * @param {string[]} dates
+ * @param {{ratio:number, itmWhen:'below'|'above', window:number, group:'sell'|'buy'}} params
+ * @returns {{date:string, before:(number|null)[], after:number[]}[]}
+ */
+export function computeDetailMatrix(closes, dates, params) {
+  const { ratio, itmWhen, window, group } = params;
+  const n = closes.length;
+  const isBelow = itmWhen === "below";
+  const rows = [];
+
+  for (let i = 0; i + window < n; i++) {
+    const strike = closes[i] * ratio;
+    const before = [];
+    for (let k = 1; k <= DETAIL_BEFORE_DAYS; k++) {
+      before.push(computeMomentum(closes, i, k));
+    }
+    const after = [];
+    for (let d = 1; d <= window; d++) {
+      const fwd = closes[i + d] / strike - 1;
+      // itmDirection: 正=ITM方向へどれだけ動いたか。signedFavorable: 正=有利な結果。
+      const itmDirection = isBelow ? -fwd : fwd;
+      const signedFavorable = group === "sell" ? -itmDirection : itmDirection;
+      after.push(signedFavorable);
+    }
+    rows.push({ date: dates[i], before, after });
+  }
+  return rows;
+}

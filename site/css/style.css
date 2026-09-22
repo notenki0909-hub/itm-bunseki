@@ -144,3 +144,36 @@ button:disabled{opacity:.6;cursor:default}
 
 .disc{margin-top:20px;padding:12px;background:var(--wbg);border:1px solid var(--wbd);
   border-radius:8px;font-size:11.5px;color:var(--wfg)}
+
+/* 詳細マトリクスページは列数が多いので、通常より広い最大幅を使う */
+.wrap-wide{max-width:none;padding:20px 24px 60px}
+
+.dm-legend{display:flex;flex-wrap:wrap;gap:16px;margin:10px 0 12px;font-size:11px;color:var(--muted)}
+.dm-lgroup{display:inline-flex;align-items:center;gap:3px}
+.dm-table-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:8px}
+.dm-table{border-collapse:collapse;font-size:0}
+.dm-table th,.dm-table td{border:1px solid var(--line);padding:0}
+.dm-table th{background:var(--th);color:var(--muted);font-size:10px;font-weight:600;
+  padding:4px 3px;white-space:nowrap;text-align:center}
+.dm-table th.dm-sticky,.dm-table td.dm-sticky{position:sticky;left:0;background:var(--card);
+  z-index:1;box-shadow:1px 0 0 var(--line)}
+.dm-table td.dm-date{font-size:10.5px;color:var(--fg);padding:2px 6px;white-space:nowrap;text-align:left}
+.dm-table td.dc{width:16px;height:16px;cursor:default}
+
+/* 先読み(after): そのタイプにとって有利〜不利の7段階 */
+.dc.L0{background:color-mix(in srgb,var(--gA) 55%,var(--card))}
+.dc.L1{background:color-mix(in srgb,var(--gA) 38%,var(--card))}
+.dc.L2{background:color-mix(in srgb,var(--gA) 20%,var(--card))}
+.dc.L3{background:var(--field)}
+.dc.L4{background:color-mix(in srgb,var(--gC) 20%,var(--card))}
+.dc.L5{background:color-mix(in srgb,var(--gC) 38%,var(--card))}
+.dc.L6{background:color-mix(in srgb,var(--gC) 55%,var(--card))}
+
+/* 前営業日比較(before): 上昇/下落の7段階 */
+.dc.U2{background:color-mix(in srgb,var(--gA) 50%,var(--card))}
+.dc.U1{background:color-mix(in srgb,var(--gA) 30%,var(--card))}
+.dc.U0{background:color-mix(in srgb,var(--gA) 14%,var(--card))}
+.dc.Z{background:var(--field)}
+.dc.D0{background:color-mix(in srgb,var(--gC) 14%,var(--card))}
+.dc.D1{background:color-mix(in srgb,var(--gC) 30%,var(--card))}
+.dc.D2{background:color-mix(in srgb,var(--gC) 50%,var(--card))}
