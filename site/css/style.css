@@ -19,6 +19,12 @@ body{margin:0;font:14px/1.6 -apple-system,"Hiragino Kaku Gothic ProN","Meiryo",s
 h1{font-size:20px;margin:0 0 4px}
 .sub{color:var(--muted);font-size:12px;margin-bottom:20px}
 
+.topbar{display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap}
+.topbar h1{margin:0}
+.topbar .pagenav{display:flex;gap:10px;flex-wrap:wrap}
+.topbar .pagenav a{font-size:12.5px;color:var(--accent);text-decoration:none}
+.topbar .pagenav a:hover{text-decoration:underline}
+
 .tab-bar{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px;align-items:center}
 .tab{display:flex;align-items:center;gap:6px;padding:6px 8px 6px 12px;border:1px solid var(--line);
   border-radius:8px 8px 0 0;background:var(--field);color:var(--muted);font-size:12.5px;cursor:pointer;

@@ -1,0 +1,113 @@
+<!doctype html><html lang="ja"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>使い方・見方 - ITM分析ツール</title>
+<link rel="stylesheet" href="css/style.css">
+<style>
+.guide h2{font-size:15px;margin:26px 0 8px;border-bottom:2px solid var(--line);padding-bottom:4px}
+.guide h2:first-child{margin-top:0}
+.guide h3{font-size:13.5px;margin:16px 0 6px}
+.guide p{margin:0 0 10px}
+.guide ul,.guide ol{margin:0 0 10px;padding-left:1.4em}
+.guide li{margin-bottom:4px}
+.guide table{width:100%;border-collapse:collapse;margin:10px 0 16px;font-size:13px}
+.guide th,.guide td{text-align:left;padding:6px 8px;border-bottom:1px solid var(--line)}
+.guide th{background:var(--th,var(--field));color:var(--muted);font-size:11.5px}
+.guide .ex{background:var(--field);border:1px solid var(--line);border-radius:8px;padding:10px 12px;
+  font-size:12.5px;margin:10px 0}
+.guide .note{color:var(--muted);font-size:12px}
+</style>
+</head><body>
+<div class="wrap guide">
+  <div class="topbar"><h1>使い方・見方</h1><span class="pagenav"><a href="index.html">← 分析ページへ戻る</a></span></div>
+  <p class="sub">ITM分析ツールの入力項目・分析結果の読み方について説明します。</p>
+
+  <h2>このツールでできること</h2>
+  <p>
+    米国株のティッカーを入力すると、過去の株価データから「その時点の終値に対してある比率をかけた価格（権利行使価格）に対し、その後どれくらいの確率でITM（In The Money）になったか」を機械的に集計して表示します。
+    オプション取引（プット売り・コール売り・コール買い・プット買い）のポジションを検討する際、過去の傾向を把握するための参考情報です。
+  </p>
+  <p class="note">※ 取引のタイミングを推奨・保証するものではありません。あくまで過去データの統計的な傾向です。</p>
+
+  <h2>入力項目</h2>
+  <table>
+    <tr><th>項目</th><th>内容</th></tr>
+    <tr><td>ティッカー</td><td>分析したい米国株の銘柄コード（例: AAPL, TSLA, MSFT）</td></tr>
+    <tr><td>取引タイプ</td><td>プット売・コール売・コール買・プット買の4種類。想定するポジションを選びます</td></tr>
+    <tr><td>権利行使価格の比率</td><td>「その日の終値 × この比率」を権利行使価格とみなします。タイプごとに初期値が異なりますが、自由に変更できます</td></tr>
+    <tr><td>判定期間</td><td>ポジションを持ってから何営業日後までを見るか（10〜90営業日）</td></tr>
+    <tr><td>集計期間</td><td>「過去」とみなすデータの範囲（6ヶ月〜3年）。変更してもデータの再取得は発生しません</td></tr>
+  </table>
+
+  <div class="ex">
+    <b>例：</b>プット売・比率0.9 の場合 → 「その日の終値の90%の位置に権利行使価格を置いてプットを売った」という想定で分析します。
+  </div>
+
+  <h2>「本日の状況」の見方</h2>
+  <p>ティッカーを分析すると、最新の株価をもとにした現在の状況が表示されます。</p>
+  <table>
+    <tr><th>項目</th><th>内容</th></tr>
+    <tr><td>最新データの日付</td><td>集計期間内で何日分のデータが使われているか</td></tr>
+    <tr><td>終値</td><td>取得できた最新営業日の終値</td></tr>
+    <tr><td>現在の比率での権利行使価格</td><td>「終値 × 権利行使価格の比率」。今エントリーする場合の権利行使価格の目安</td></tr>
+    <tr><td>過去N営業日比較</td><td>本日の終値が、1〜7営業日前と比べて何%変動したか</td></tr>
+  </table>
+
+  <h2>「分析結果」の見方</h2>
+  <table>
+    <tr><th>項目</th><th>内容</th></tr>
+    <tr><td>判定件数(日)</td><td>過去のデータの中で、実際に計算できた「取引開始日」の件数</td></tr>
+    <tr><td>期間内ITM確率</td><td>その取引開始日のうち、判定期間内に1日でもITMになった日の割合</td></tr>
+    <tr><td>総合判定</td><td>期間内ITM確率を7段階のバッジで表示（激熱〜ピンチ等）</td></tr>
+    <tr><td>営業日ごとのITM確率</td><td>横軸=何営業日後か、縦軸=その時点でのITM確率。ITMになりやすい時期の傾向が分かります</td></tr>
+  </table>
+
+  <h3>「良い/悪い」の向きに注意</h3>
+  <p>
+    <b>ITMになることが「良い」か「悪い」かは、取引タイプによって逆になります。</b>
+  </p>
+  <ul>
+    <li><b>売り（プット売・コール売）</b>：ITMは権利行使される＝売り手に不利。<b>ITM確率は低いほど良い</b></li>
+    <li><b>買い（コール買・プット買）</b>：ITMは利益が出る方向＝買い手に有利。<b>ITM確率は高いほど良い</b></li>
+  </ul>
+  <p>総合判定バッジは、この向きを踏まえた上で「そのタイプにとって有利な方向の確率」に変換してから7段階評価しているため、表示されているITM確率の数値と矛盾しない設計になっています。</p>
+
+  <h2>「エントリー条件で絞り込み」の見方</h2>
+  <p>
+    「過去、本日と似た値動きをした日は、その後どれくらいの確率でITMになったか」を調べる機能です。「7営業日前と比べて5%以上下落した日」のような条件で過去データを絞り込み、その条件下でのITM確率を全体平均と比較できます。
+  </p>
+  <table>
+    <tr><th>項目</th><th>内容</th></tr>
+    <tr><td>比較営業日数</td><td>何営業日前の株価と比較するか（1〜7営業日）</td></tr>
+    <tr><td>方向</td><td>下落または上昇</td></tr>
+    <tr><td>変化率(%以上)</td><td>絞り込みのしきい値</td></tr>
+    <tr><td>該当日数</td><td>過去データの中でこの条件に当てはまった日数</td></tr>
+    <tr><td>条件付きITM確率</td><td>その条件に当てはまった日だけで見たITM確率</td></tr>
+    <tr><td>全体ITM確率(参考)</td><td>条件を付けない場合のITM確率（比較用）</td></tr>
+    <tr><td>本日はこの条件に該当</td><td>今の値動きがこの条件に当てはまるかどうか</td></tr>
+  </table>
+  <div class="ex">
+    <b>使い方の例：</b>プット売を検討していて「大きく下落した直後に売ると勝率が変わるか」を確かめたい場合、方向を「下落」、変化率を「5」などに設定して、条件付きITM確率が全体より低ければ「下落直後のエントリーは過去実績が良い」という傾向が読み取れます。
+  </div>
+
+  <h2>タブ機能</h2>
+  <p>
+    画面上部の「＋ 新規タブ」で新しいタブを開けます。1銘柄でタイプ違い（プット売とコール買など）を見比べたり、複数銘柄を切り替えながら見たりできます。
+  </p>
+  <ul>
+    <li>タブごとに、ティッカー・タイプ・比率・判定期間・集計期間の設定と分析結果を独立して保持します</li>
+    <li>タブを切り替えても、以前取得したデータをそのまま表示するだけなので、通信は発生しません</li>
+    <li>同じ銘柄を別タブで分析しても、既に取得済みならデータの再取得はしません</li>
+    <li>タブの「×」で閉じられます（最後の1つは閉じると自動的に新規タブが開きます）</li>
+  </ul>
+
+  <h2>データについて</h2>
+  <ul>
+    <li>対応は米国株のみです</li>
+    <li>データ取得元は Twelve Data です</li>
+    <li>過去の値動きから機械的に算出した確率であり、将来を保証するものではありません</li>
+    <li>取引のタイミングを推奨するものではなく、傾向をつかむための参考情報です</li>
+    <li>データ取得元の都合で値が取得できない、または遅延する場合があります</li>
+    <li>上記を踏まえた上で、自己責任でご利用ください</li>
+  </ul>
+</div>
+</body></html>
