@@ -181,7 +181,10 @@ button:disabled{opacity:.6;cursor:default}
    付いたときだけ表示する(判定期間を最大150日まで許容すると列数が多くなるため)。 */
 .dm-table th.dm-extra,.dm-table td.dc.dm-extra{display:none}
 .dm-table.dm-show-extra th.dm-extra,.dm-table.dm-show-extra td.dc.dm-extra{display:table-cell}
-.dm-expand{margin:0 0 8px}
+.dm-expand{margin:0 0 10px}
+.dm-expand-btn{padding:6px 14px;border:1px solid var(--accent);border-radius:8px;
+  background:var(--card);color:var(--accent);font-size:12.5px;font-weight:600;cursor:pointer}
+.dm-expand-btn:hover{background:var(--field)}
 
 /* 先読み(after)7段階。元Excelの条件付き書式の配色(赤→オレンジ→黄→塗りなし→水色→青→紫)を
    そのまま踏襲。L0が最も有利、L6が最も不利。しきい値自体はタイプごとに異なる(js/detail.js)。 */
