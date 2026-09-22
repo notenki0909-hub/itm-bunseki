@@ -43,6 +43,7 @@ const els = {
   badge: document.getElementById("badge"),
   entryCount: document.getElementById("entryCount"),
   itmCount: document.getElementById("itmCount"),
+  totalItmDays: document.getElementById("totalItmDays"),
   overallProb: document.getElementById("overallProb"),
   chartWrap: document.getElementById("chartWrap"),
   heatmapWrap: document.getElementById("heatmapWrap"),
@@ -295,6 +296,7 @@ function renderMainAnalysis(t) {
   els.badge.className = "badge " + badgeLevelClass(analysis.badgeLevel);
   els.entryCount.textContent = analysis.entryCount.toLocaleString("ja-JP");
   els.itmCount.textContent = analysis.itmEntryCount.toLocaleString("ja-JP");
+  els.totalItmDays.textContent = analysis.totalItmDays.toLocaleString("ja-JP");
   els.overallProb.textContent = analysis.overallItmProb === null
     ? "―"
     : (analysis.overallItmProb * 100).toFixed(1) + "%";

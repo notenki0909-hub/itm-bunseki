@@ -42,6 +42,7 @@ const BADGE_LABELS = {
  * @returns {{
  *   entryCount:number,
  *   itmEntryCount:number,
+ *   totalItmDays:number,
  *   overallItmProb:number|null,
  *   dayProb:(number|null)[],
  *   badge:string,
@@ -58,6 +59,7 @@ export function computeItmAnalysis(closes, params, dates) {
   const dayTotalCounts = new Array(window + 1).fill(0);
   let entryCount = 0;
   let entriesItmWithinWindow = 0;
+  let totalItmDays = 0;
   const perEntry = [];
 
   for (let i = 0; i + window < n; i++) {
@@ -75,6 +77,7 @@ export function computeItmAnalysis(closes, params, dates) {
       }
     }
     if (itmDaysInWindow > 0) entriesItmWithinWindow++;
+    totalItmDays += itmDaysInWindow;
     perEntry.push({ date: dates ? dates[i] : null, itmDaysInWindow });
   }
 
@@ -89,6 +92,7 @@ export function computeItmAnalysis(closes, params, dates) {
   return {
     entryCount,
     itmEntryCount: entriesItmWithinWindow,
+    totalItmDays,
     overallItmProb,
     dayProb,
     badge,
