@@ -160,11 +160,10 @@ button:disabled{opacity:.6;cursor:default}
 /* 詳細マトリクスページは列数が多いので、通常より広い最大幅を使う */
 .wrap-wide{max-width:none;padding:20px 24px 60px}
 
-/* 「← 分析ページへ戻る」の右端を「表示する」ボタンの右端に揃える。
-   ボタンは.card(padding:16px)の中でform-rowの右端(margin-left:auto)に押し出されるため、
-   同じ16px分だけtopbarの右側を内側に寄せて、両者の右端を一致させている。 */
-.dm-topbar{padding-right:16px}
-.dm-analyze-btn{margin-left:auto}
+/* 「表示する」ボタンは集計期間のすぐ右に配置(通常のform-rowの並び通り)。
+   「← 分析ページへ戻る」の右端は、1段下にある「標準に戻す」の右端に揃えている
+   (見た目上、戻るリンクが標準に戻すの真上に来る)。どちらも幅が固定値ではない
+   ため、揃える処理はjs/detail.js側で実測して行っている。 */
 
 .dm-legend{display:flex;flex-wrap:wrap;gap:16px;margin:10px 0 12px;font-size:11px;color:var(--muted)}
 .dm-lgroup{display:inline-flex;align-items:center;gap:3px}
@@ -212,3 +211,7 @@ button:disabled{opacity:.6;cursor:default}
 .dc.D0{background:color-mix(in srgb,var(--favA) 22%,var(--card))} /* 下落 -5〜0% */
 .dc.D1{background:color-mix(in srgb,var(--favA) 42%,var(--card))} /* 下落 -10〜-5% */
 .dc.D2{background:color-mix(in srgb,var(--favA) 65%,var(--card))} /* 下落 10%超 */
+
+/* データが無いセル(集計期間の端で前後の日付が足りない)は、L3(条件的に塗りなし)と
+   区別できるよう、はっきりしたグレーで塗る。 */
+.dm-nodata{background:color-mix(in srgb,var(--muted) 30%,var(--card))}

@@ -65,7 +65,7 @@ const AFTER_BANDS = {
 };
 
 function classifyAfter(rawFwd, typeKey) {
-  if (rawFwd === null) return ""; // データなし(集計期間の末尾で先の日付が無い)
+  if (rawFwd === null) return "dm-nodata"; // データなし(集計期間の末尾で先の日付が無い)
   const band = AFTER_BANDS[typeKey] || AFTER_BANDS.put_sell;
   for (const [t, cls] of band.steps) {
     if (band.mode === "gte" ? rawFwd >= t : rawFwd <= t) return cls;
@@ -100,7 +100,7 @@ function renderAfterLegend(typeKey) {
 
 // 前営業日比較(before)の5段階しきい値。元Excelの条件付き書式(10/0/-5/-10%)に合わせている。
 function classifyBefore(v) {
-  if (v === null) return "";
+  if (v === null) return "dm-nodata";
   if (v > 0.10) return "U1"; // 上昇 10%超
   if (v >= 0) return "Z";    // 0〜10%: ほぼ変動なし〜小幅上昇
   if (v >= -0.05) return "D0"; // 下落 -5〜0%
@@ -129,7 +129,7 @@ function renderTable(rows, windowDays, typeKey) {
       `<td class="dm-sticky dm-date">${row.date}</td>` +
       `<td class="dm-num">${row.close.toFixed(2)}</td>` +
       `<td class="dm-num">${row.strike.toFixed(2)}</td>` +
-      `<td class="dm-num">${row.itmDaysRef === null ? "―" : row.itmDaysRef}</td>`;
+      `<td class="dm-num${row.itmDaysRef === null ? " dm-nodata" : ""}">${row.itmDaysRef === null ? "―" : row.itmDaysRef}</td>`;
     const beforeCells = beforeOrdered.map((v) => {
       const cls = classifyBefore(v);
       return `<td class="dc ${cls}" title="${row.date}: ${pct(v)}"></td>`;
@@ -203,6 +203,7 @@ function render() {
 
   els.emptyState.hidden = true;
   els.detailWrap.hidden = false;
+  alignBackLink();
 }
 
 async function onAnalyze() {
@@ -267,6 +268,19 @@ function applyStateToForm() {
   els.periodSelect.value = String(state.periodDays);
 }
 
+// 「← 分析ページへ戻る」の右端を、1段下にある「標準に戻す」の右端に揃える
+// (見た目上、戻るリンクが標準に戻すの真上に来るように)。どちらの位置も
+// 配色プリセットの数やラベル幅で変わり得るため、実際の描画結果を測って合わせる。
+function alignBackLink() {
+  const pagenav = document.querySelector(".pagenav");
+  const topbar = document.querySelector(".dm-topbar");
+  const resetBtn = document.querySelector("#theme-bar .tb-reset");
+  if (!pagenav || !topbar || !resetBtn) return;
+  pagenav.style.marginRight = "0px";
+  const offset = topbar.getBoundingClientRect().right - resetBtn.getBoundingClientRect().right;
+  pagenav.style.marginRight = offset > 0 ? `${offset}px` : "0px";
+}
+
 async function init() {
   initThemeBar("theme-bar");
   initTypeOptions();
@@ -298,6 +312,13 @@ async function init() {
     applyStateToForm();
     els.emptyState.hidden = false;
   }
+  alignBackLink();
+  window.addEventListener("resize", debounce(alignBackLink, 150));
+  // 配色切替でラベル("ライトに切替"/"ダークに切替")の幅が変わり、標準に戻すの
+  // 位置がわずかにずれる可能性があるため、テーマバー操作後にも再計算する。
+  document.getElementById("theme-bar").addEventListener("click", () => {
+    setTimeout(alignBackLink, 0);
+  });
 
   els.analyzeBtn.addEventListener("click", onAnalyze);
   els.ticker.addEventListener("keydown", (e) => {
