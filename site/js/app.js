@@ -330,7 +330,7 @@ function renderConditionCard(t) {
     : t.momentumDirection === "down" ? todayMomentum <= -thresholdFrac : todayMomentum >= thresholdFrac;
 
   els.todayMatchBadge.textContent = todayMatches === null ? "データ不足" : todayMatches ? "該当する" : "該当しない";
-  els.todayMatchBadge.className = "badge " + (todayMatches ? "b-good" : "b-neutral");
+  els.todayMatchBadge.className = "badge " + (todayMatches === null ? "b-neutral" : todayMatches ? "b-match" : "b-nomatch");
 
   els.conditionCard.hidden = false;
 }

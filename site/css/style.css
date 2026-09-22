@@ -70,6 +70,9 @@ button:disabled{opacity:.6;cursor:default}
 .b-good{background:color-mix(in srgb,var(--gA) 18%,transparent);color:var(--gA)}
 .b-bad{background:color-mix(in srgb,var(--gC) 18%,transparent);color:var(--gC)}
 .b-neutral{background:color-mix(in srgb,var(--muted) 18%,transparent);color:var(--muted)}
+/* 該当する/しない: 良し悪しではなく「条件に一致したか」という事実を示すのでアクセントカラーを使う */
+.b-match{background:color-mix(in srgb,var(--accent) 22%,transparent);color:var(--accent)}
+.b-nomatch{background:color-mix(in srgb,var(--muted) 14%,transparent);color:var(--muted)}
 
 /* 総合判定バッジ: ヒートマップと同じ考え方で、有利〜不利を色の濃淡7段階で表す */
 .badge.b0{background:color-mix(in srgb,var(--gA) 32%,transparent);color:var(--gA)}
