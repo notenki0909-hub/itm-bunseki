@@ -23,8 +23,8 @@
     </div>
     <div class="dm-legend">
       <span class="dm-lgroup"><span>前営業日比（下落10%超</span><span class="dc D2"></span>〜<span class="dc D0"></span>0%〜<span class="dc U1"></span>上昇10%超）</span>
-      <span class="dm-lgroup"><span>先読み（不利<span class="dc L6"></span><span class="dc L5"></span>0%<span class="dc L4"></span><span class="dc L3"></span><span class="dc L2"></span><span class="dc L1"></span><span class="dc L0"></span>有利）</span></span>
     </div>
+    <div class="dm-legend dm-legend-after" id="afterLegend"></div>
     <div class="dm-table-wrap">
       <table class="dm-table" id="dmTable"></table>
     </div>
@@ -32,7 +32,7 @@
 
   <div class="disc">
     ・セルにマウスを乗せると、正確な変動率が表示されます。<br>
-    ・「前営業日比」は赤が上昇、青が下落を表します。「先読み」のツールチップの数値は権利行使価格からの乖離率（＋は権利行使価格より上、－は下）です。色はそのタイプ(売り/買い)にとって有利な方向を赤、不利な方向を青で表します（プット売＝上がってほしいのでATM以上が赤／プット買＝下がってほしいのでATM未満が赤／コール売＝下がってほしいのでATM未満が赤／コール買＝上がってほしいのでATM以上が赤）。<br>
+    ・「前営業日比」は赤が上昇、青が下落を表します。「先読み」のツールチップの数値は権利行使価格からの乖離率（＋は権利行使価格より上、－は下）です。色は元のExcelシートの条件付き書式（赤→オレンジ→黄→塗りなし→水色→青→紫の7段階）をタイプ(プット売/コール売/コール買/プット買)ごとのしきい値そのままに再現しており、赤に近いほど有利、紫に近いほど不利です。しきい値は上の凡例を参照してください。<br>
     ・過去の値動きから機械的に算出したものであり、将来を保証するものではありません。自己責任でご利用ください。
   </div>
 </div>

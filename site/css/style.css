@@ -4,8 +4,12 @@
   --gA:#166534;--gB:#854d0e;--gC:#b91c1c;
   --wbg:#fff7ed;--wbd:#fed7aa;--wfg:#7c2d12;
   --favA:#1d4ed8;--favB:#b91c1c;
+  --gradRed:#dc2626;--gradOrange:#ea8c0a;--gradYellow:#f2d477;
+  --gradLightBlue:#8ec4f0;--gradBlue:#2f6fed;--gradPurple:#9b3fd4;
 }
-/* 意味色(gA/gB/gC=良い/普通/悪い, wbg/wbd/wfg=警告, favA/favB=詳細マトリクス用の青/赤)は
+/* 意味色(gA/gB/gC=良い/普通/悪い, wbg/wbd/wfg=警告, favA/favB=前営業日比用の青/赤,
+   gradRed〜gradPurple=詳細マトリクス「先読み」用の7色グラデーション、元Excelの
+   条件付き書式の配色(赤/オレンジ/黄/水色/青/紫)をそのまま踏襲)は
    アクセント配色プリセットに連動させず、ライト/ダークの2パターンだけ独立に持たせる
    （プリセットを変えても「緑=有利」「青=有利」等の意味が壊れないように）。*/
 :root[data-mode="dark"]{
@@ -14,6 +18,8 @@
   --gA:#4ade80;--gB:#fbbf24;--gC:#f87171;
   --wbg:#26210f;--wbd:#5a4a1b;--wfg:#e7c06a;
   --favA:#60a5fa;--favB:#f87171;
+  --gradRed:#f26161;--gradOrange:#f5a83c;--gradYellow:#c9a227;
+  --gradLightBlue:#5b8fc9;--gradBlue:#5a8ef2;--gradPurple:#b06be0;
 }
 @media (prefers-color-scheme: dark){
   /* JS(head内)が必ずdata-modeを明示設定するため、これはJS無効時のフォールバックとしてのみ働く */
@@ -23,6 +29,8 @@
     --gA:#4ade80;--gB:#fbbf24;--gC:#f87171;
     --wbg:#26210f;--wbd:#5a4a1b;--wfg:#e7c06a;
     --favA:#60a5fa;--favB:#f87171;
+    --gradRed:#f26161;--gradOrange:#f5a83c;--gradYellow:#c9a227;
+    --gradLightBlue:#5b8fc9;--gradBlue:#5a8ef2;--gradPurple:#b06be0;
   }
 }
 
@@ -154,6 +162,10 @@ button:disabled{opacity:.6;cursor:default}
 
 .dm-legend{display:flex;flex-wrap:wrap;gap:16px;margin:10px 0 12px;font-size:11px;color:var(--muted)}
 .dm-lgroup{display:inline-flex;align-items:center;gap:3px}
+.dm-legend-after{gap:10px 14px;align-items:center}
+.dm-lgroup-title{width:100%;font-size:11px;color:var(--muted);margin-bottom:2px}
+.dm-litem{display:inline-flex;align-items:center;gap:4px;font-size:11px;color:var(--fg)}
+.dm-litem .dc{display:inline-block;width:14px;height:14px;border-radius:3px;border:1px solid var(--line)}
 .dm-table-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:8px}
 .dm-table{border-collapse:collapse;font-size:0}
 .dm-table th,.dm-table td{border:1px solid var(--line);padding:0}
@@ -166,13 +178,15 @@ button:disabled{opacity:.6;cursor:default}
 
 /* 先読み(after): 権利行使価格に対する乖離率(0%が境界)。0%以上=有利=青、0%未満=不利=赤。
    しきい値(40/30/20/5/0/-5%)は元Excelの条件付き書式(激熱〜ピンチの7段階)に合わせている。 */
-.dc.L0{background:color-mix(in srgb,var(--favB) 75%,var(--card))} /* 激熱 >=40%(有利) */
-.dc.L1{background:color-mix(in srgb,var(--favB) 58%,var(--card))} /* 熱 30-40% */
-.dc.L2{background:color-mix(in srgb,var(--favB) 42%,var(--card))} /* 好機 20-30% */
-.dc.L3{background:color-mix(in srgb,var(--favB) 26%,var(--card))} /* 可もなく不可もなく 5-20% */
-.dc.L4{background:color-mix(in srgb,var(--favB) 12%,var(--card))} /* ひやひや 0-5% */
-.dc.L5{background:color-mix(in srgb,var(--favA) 22%,var(--card))} /* ITM -5-0%(不利) */
-.dc.L6{background:color-mix(in srgb,var(--favA) 55%,var(--card))} /* ピンチ <-5% */
+/* 先読み(after)7段階。元Excelの条件付き書式の配色(赤→オレンジ→黄→塗りなし→水色→青→紫)を
+   そのまま踏襲。L0が最も有利、L6が最も不利。しきい値自体はタイプごとに異なる(js/detail.js)。 */
+.dc.L0{background:color-mix(in srgb,var(--gradRed) 75%,var(--card))}
+.dc.L1{background:color-mix(in srgb,var(--gradOrange) 68%,var(--card))}
+.dc.L2{background:color-mix(in srgb,var(--gradYellow) 62%,var(--card))}
+.dc.L3{background:var(--card)}
+.dc.L4{background:color-mix(in srgb,var(--gradLightBlue) 55%,var(--card))}
+.dc.L5{background:color-mix(in srgb,var(--gradBlue) 68%,var(--card))}
+.dc.L6{background:color-mix(in srgb,var(--gradPurple) 75%,var(--card))}
 
 /* 前営業日比較(before): 元Excelのしきい値(10/0/-5/-10%)に合わせた5段階。
    上昇=赤、下落=青（日本の株式チャート慣習：陽線=赤、陰線=青）。 */
