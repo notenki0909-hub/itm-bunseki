@@ -1,0 +1,6 @@
+# Cloudflare Pages はダッシュボードのGit連携で設定する想定。
+# 本番デプロイにこのファイルは不要。ローカル確認専用:
+#   npx wrangler pages dev site
+name = "itm-bunseki"
+pages_build_output_dir = "site"
+compatibility_date = "2026-09-22"
