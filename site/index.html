@@ -143,6 +143,46 @@
     </div>
   </div>
 
+  <div id="riskRewardExplain" class="explain-box" hidden></div>
+  <div id="riskRewardCard" class="card" hidden>
+    <h2 style="margin:0 0 10px;font-size:16px">リスクリワード分析</h2>
+    <p class="sub" style="margin:0 0 10px"><b>考え方：</b>判定期間内のITM日数が指定したしきい値以上のエントリー日を、売りは「負け」・買いは「勝ち」とみなして勝率を算出します。受取/支払いプレミアムと組み合わせて、損益分岐の目安と比較します。</p>
+    <div class="form-row">
+      <div class="field">
+        <label for="rrVariantSelect" data-target="riskRewardExplain"
+          data-note="上の「取引タイプ」に対応する、単体とスプレッドの2種類から選べます（例: プット売なら「プット売り」または「ブルプット」）。">取引の種類</label>
+        <select id="rrVariantSelect"></select>
+      </div>
+      <div class="field">
+        <label for="rrThresholdInput" data-target="riskRewardExplain"
+          data-note="判定期間内のITM日数がこの日数以上のエントリー日を、売りは「負け」、買いは「勝ち」として勝率を計算します（ITMは買い手に有利、売り手に不利なため）。判定期間の長さに関わらず、絶対日数として扱います。">ITM日数のしきい値(◯日以上)</label>
+        <input id="rrThresholdInput" type="number" step="1" min="1" max="150" value="4">
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="field">
+        <label for="rrLossBasisInput" data-target="riskRewardExplain"
+          data-note="単体売りなら権利行使価格、スプレッドなら2つの権利行使価格の差額（スプレッド幅）、単体買い/デビットスプレッドなら支払いプレミアム額を入力します。コール売り(単体)は損失が無限大のため使いません。">
+          <span id="rrLossBasisLabel">権利行使価格</span></label>
+        <input id="rrLossBasisInput" type="number" step="0.01" min="0" placeholder="例: 45.00">
+      </div>
+      <div class="field">
+        <label for="rrPremiumInput" data-target="riskRewardExplain"
+          data-note="オプションの売り手として受け取るプレミアム額（合計）です。買い系を選んでいる間は使わないため入力できません。">受取プレミアム額</label>
+        <input id="rrPremiumInput" type="number" step="0.01" min="0" placeholder="例: 1.20">
+      </div>
+    </div>
+    <p class="sub" id="rrInfiniteNote" style="margin:-6px 0 10px" hidden>コール売り(単体)は理論上、損失が無限大になり得るため、上の入力欄は損益分岐の判定には使用しません。</p>
+
+    <h3 style="margin:18px 0 8px;font-size:14px">絞り込みなし（分析結果と同じ母集団）</h3>
+    <div class="summary" id="rrBaseSummary"></div>
+    <div id="rrBaseWarning" class="disc" style="margin-top:8px" hidden></div>
+
+    <h3 style="margin:18px 0 8px;font-size:14px">エントリー条件で絞り込みあり</h3>
+    <div class="summary" id="rrCondSummary"></div>
+    <div id="rrCondWarning" class="disc" style="margin-top:8px" hidden></div>
+  </div>
+
   <div class="disc">
     ・過去の値動きから機械的に算出した確率であり、将来を保証するものではありません。<br>
     ・取引のタイミングを推奨するものではなく、傾向をつかむための参考情報です。<br>

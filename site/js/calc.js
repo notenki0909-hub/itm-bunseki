@@ -175,7 +175,8 @@ const CONDITION_WITHIN_DAYS = 7;
  * @param {{ratio:number, itmWhen:'below'|'above', window:number,
  *           conditionMode:'lookback'|'countWithin7', momentumLookback:number,
  *           momentumDirection:'down'|'up', momentumThresholdPct:number, minMatchDays:number}} params
- * @returns {{matchedCount:number, matchedItmCount:number, matchedItmProb:number|null, matchedTotalItmDays:number}}
+ * @returns {{matchedCount:number, matchedItmCount:number, matchedItmProb:number|null,
+ *            matchedTotalItmDays:number, itmDaysList:number[]}}
  */
 export function computeConditionalItmAnalysis(closes, params) {
   const {
@@ -190,6 +191,9 @@ export function computeConditionalItmAnalysis(closes, params) {
   let matchedCount = 0;
   let matchedItmCount = 0;
   let matchedTotalItmDays = 0;
+  // 該当日ごとのITM日数の一覧。リスクリワード分析で「ITM日数がしきい値以上の
+  // 該当日」を数え直すために使う(母数は該当日数=matchedCountに固定するため)。
+  const itmDaysList = [];
 
   for (let i = startIndex; i + window < n; i++) {
     let matches;
@@ -222,6 +226,7 @@ export function computeConditionalItmAnalysis(closes, params) {
     }
     if (itmAny) matchedItmCount++;
     matchedTotalItmDays += itmDaysInWindow;
+    itmDaysList.push(itmDaysInWindow);
   }
 
   return {
@@ -229,7 +234,75 @@ export function computeConditionalItmAnalysis(closes, params) {
     matchedItmCount,
     matchedItmProb: matchedCount ? matchedItmCount / matchedCount : null,
     matchedTotalItmDays,
+    itmDaysList,
   };
+}
+
+// ============================================================
+// リスクリワード分析
+// ============================================================
+// 「ITM発生エントリー数の割合」とは別に、ITM日数(判定期間内で判定基準価格に
+// 達していた日数)が指定したしきい値以上かどうかで勝敗を決め、受取/支払い
+// プレミアムと損失額(または獲得すべき利益額)を比較する機能。
+
+// 取引の種類。上部の取引タイプ(OPTION_TYPESのキー)ごとに「単体(naked)」と
+// 「スプレッド(spread)」の2種類を選べる。ラベルは元のオプション用語に合わせた。
+export const RISK_VARIANT_LABELS = {
+  put_sell: { naked: "プット売り", spread: "ブルプット" },
+  call_sell: { naked: "コール売り", spread: "ベアコール" },
+  put_buy: { naked: "プット買い", spread: "ベアプット" },
+  call_buy: { naked: "コール買い", spread: "ブルコール" },
+};
+
+// 「コール売り(単体)」だけは理論上、損失が無限大になり得る特殊ケース。
+export function isInfiniteLossVariant(typeKey, variant) {
+  return typeKey === "call_sell" && variant === "naked";
+}
+
+/**
+ * 判定期間内のITM日数の一覧から、指定したしきい値で勝敗を数え、勝率を返す。
+ * 売り(group="sell")はITM日数がしきい値以上を「負け」、
+ * 買い(group="buy")はITM日数がしきい値以上を「勝ち」として扱う
+ * (ITMが有利か不利かは売り/買いで逆になるため)。
+ *
+ * @param {number[]} itmDaysList
+ * @param {number} threshold ITM日数のしきい値(◯日以上)
+ * @param {'sell'|'buy'} group
+ * @returns {{total:number, hitCount:number, winRate:number|null}}
+ */
+export function computeWinRateByItmDays(itmDaysList, threshold, group) {
+  const total = itmDaysList.length;
+  if (total === 0) return { total: 0, hitCount: 0, winRate: null };
+  const hitCount = itmDaysList.filter((d) => d >= threshold).length;
+  const winRate = group === "sell" ? 1 - hitCount / total : hitCount / total;
+  return { total, hitCount, winRate };
+}
+
+// 売り系: 受取プレミアムと勝率から、損益分岐となる「許容できる最大損失額」を算出する。
+// p×プレミアム = (1-p)×損失額 が損益分岐点なので、損失額 = プレミアム×p/(1-p)。
+export function breakEvenMaxLoss(premium, winRate) {
+  if (premium === null || winRate === null || !(premium >= 0)) return null;
+  if (winRate >= 1) return Infinity;
+  if (winRate <= 0) return 0;
+  return premium * (winRate / (1 - winRate));
+}
+
+// 買い系: 支払いプレミアムと勝率から、損益分岐に必要な「最低利益額」を算出する。
+// (1-p)×プレミアム = p×利益額 が損益分岐点なので、利益額 = プレミアム×(1-p)/p。
+export function breakEvenMinGain(premium, winRate) {
+  if (premium === null || winRate === null || !(premium >= 0)) return null;
+  if (winRate <= 0) return Infinity;
+  if (winRate >= 1) return 0;
+  return premium * ((1 - winRate) / winRate);
+}
+
+// サンプル数(母数)に応じた警告レベル。B+E方式: 〜9件=強い警告、10〜29件=軽い警告、
+// 30件〜=警告なし。呼び出し側で「集計期間を延ばす/判定期間を短くする/条件を緩める」
+// といった改善策の文言を添えることを想定している。
+export function sampleWarningLevel(count) {
+  if (count < 10) return "strong";
+  if (count < 30) return "mild";
+  return null;
 }
 
 export const DETAIL_BEFORE_DAYS = 7;

@@ -4,6 +4,8 @@ import {
   MOMENTUM_LOOKBACK_OPTIONS, DEFAULT_MOMENTUM_LOOKBACK,
   computeItmAnalysis, computeConditionalItmAnalysis,
   computeRecentMomentumStrip, computeMomentum, typeGroup, BADGE_LABELS,
+  RISK_VARIANT_LABELS, isInfiniteLossVariant, computeWinRateByItmDays,
+  breakEvenMaxLoss, breakEvenMinGain, sampleWarningLevel,
 } from "./calc.js";
 import { renderDayProbChart, DAY_PROB_BANDS } from "./chart.js";
 import { renderEntryHeatmap, ENTRY_HEATMAP_BANDS } from "./heatmap.js";
@@ -40,6 +42,10 @@ function tabRecipe(t) {
     minMatchDays: t.minMatchDays,
     momentumDirection: t.momentumDirection,
     momentumThresholdPct: t.momentumThresholdPct,
+    rrVariant: t.rrVariant,
+    rrThreshold: t.rrThreshold,
+    rrLossBasis: t.rrLossBasis,
+    rrPremium: t.rrPremium,
   };
 }
 
@@ -55,6 +61,10 @@ function applyRecipe(t, rec) {
     minMatchDays: rec.minMatchDays ?? t.minMatchDays,
     momentumDirection: rec.momentumDirection || t.momentumDirection,
     momentumThresholdPct: rec.momentumThresholdPct ?? t.momentumThresholdPct,
+    rrVariant: rec.rrVariant || t.rrVariant,
+    rrThreshold: rec.rrThreshold ?? t.rrThreshold,
+    rrLossBasis: rec.rrLossBasis ?? t.rrLossBasis,
+    rrPremium: rec.rrPremium ?? t.rrPremium,
   });
 }
 
@@ -223,6 +233,18 @@ const els = {
   matchedTotalItmDays: document.getElementById("matchedTotalItmDays"),
   matchedProb: document.getElementById("matchedProb"),
   todayMatchBadge: document.getElementById("todayMatchBadge"),
+
+  riskRewardCard: document.getElementById("riskRewardCard"),
+  rrVariantSelect: document.getElementById("rrVariantSelect"),
+  rrThresholdInput: document.getElementById("rrThresholdInput"),
+  rrLossBasisInput: document.getElementById("rrLossBasisInput"),
+  rrLossBasisLabel: document.getElementById("rrLossBasisLabel"),
+  rrPremiumInput: document.getElementById("rrPremiumInput"),
+  rrInfiniteNote: document.getElementById("rrInfiniteNote"),
+  rrBaseSummary: document.getElementById("rrBaseSummary"),
+  rrBaseWarning: document.getElementById("rrBaseWarning"),
+  rrCondSummary: document.getElementById("rrCondSummary"),
+  rrCondWarning: document.getElementById("rrCondWarning"),
 };
 
 function activeTab() {
@@ -244,6 +266,10 @@ function newTabState() {
     minMatchDays: 3,
     momentumDirection: "down",
     momentumThresholdPct: 5,
+    rrVariant: "naked",
+    rrThreshold: 4,
+    rrLossBasis: null,
+    rrPremium: null,
   };
 }
 
@@ -286,6 +312,13 @@ function switchTab(id) {
   els.momentumDirectionSelect.value = t.momentumDirection;
   els.momentumThresholdInput.value = t.momentumThresholdPct;
   updateConditionModeUI(t.conditionMode);
+
+  initRiskRewardVariantOptions(t.typeKey);
+  els.rrVariantSelect.value = t.rrVariant;
+  els.rrThresholdInput.value = t.rrThreshold;
+  els.rrLossBasisInput.value = t.rrLossBasis ?? "";
+  els.rrPremiumInput.value = t.rrPremium ?? "";
+  updateRiskRewardInputUI(t.typeKey, t.rrVariant);
   setStatus("");
 
   if (t.closesFull) {
@@ -294,6 +327,7 @@ function switchTab(id) {
     els.todayCard.hidden = true;
     els.result.hidden = true;
     els.conditionCard.hidden = true;
+    els.riskRewardCard.hidden = true;
   }
   renderTabBar();
   persistState();
@@ -406,6 +440,7 @@ async function onAnalyze() {
 function onFormChange() {
   const t = activeTab();
   if (!t) return;
+  const typeChanged = t.typeKey !== els.typeSelect.value;
   t.typeKey = els.typeSelect.value;
   t.ratio = Number(els.ratioInput.value) || OPTION_TYPES[t.typeKey].ratio;
   t.windowDays = Number(els.windowSelect.value) || DEFAULT_WINDOW;
@@ -416,6 +451,19 @@ function onFormChange() {
   t.momentumDirection = els.momentumDirectionSelect.value;
   t.momentumThresholdPct = Number(els.momentumThresholdInput.value) || 0;
   updateConditionModeUI(t.conditionMode);
+
+  if (typeChanged) {
+    // 取引タイプが変わると「取引の種類」の選択肢のラベル(単体/スプレッド名)が
+    // 変わるため作り直す。選択自体(単体 or スプレッド)は維持する。
+    initRiskRewardVariantOptions(t.typeKey);
+    els.rrVariantSelect.value = t.rrVariant;
+  }
+  t.rrVariant = els.rrVariantSelect.value;
+  t.rrThreshold = Number(els.rrThresholdInput.value) || 1;
+  t.rrLossBasis = els.rrLossBasisInput.value === "" ? null : Number(els.rrLossBasisInput.value);
+  t.rrPremium = els.rrPremiumInput.value === "" ? null : Number(els.rrPremiumInput.value);
+  updateRiskRewardInputUI(t.typeKey, t.rrVariant);
+
   if (t.closesFull) renderAll(t);
   renderTabBar();
   persistState();
@@ -443,6 +491,7 @@ function renderAll(t) {
   renderTodayCard(t);
   renderMainAnalysis(t);
   renderConditionCard(t);
+  renderRiskReward(t);
 }
 
 function renderTodayCard(t) {
@@ -562,6 +611,134 @@ function renderConditionCard(t) {
   els.conditionCard.hidden = false;
 }
 
+// 「取引の種類」プルダウンの選択肢を、上部の取引タイプに合わせて
+// 単体/スプレッドの2択に作り直す(ラベルだけが変わる。値は常にnaked/spread)。
+function initRiskRewardVariantOptions(typeKey) {
+  const labels = RISK_VARIANT_LABELS[typeKey] || RISK_VARIANT_LABELS.put_sell;
+  els.rrVariantSelect.innerHTML =
+    `<option value="naked">${labels.naked}</option><option value="spread">${labels.spread}</option>`;
+}
+
+// 選択中の取引の種類(売り/買い、単体/スプレッド、コール売り単体=無限大)に応じて、
+// 損失額・受取プレミアムの入力欄のラベルと有効/無効を切り替える。
+function updateRiskRewardInputUI(typeKey, variant) {
+  const group = typeGroup(typeKey);
+  const infinite = isInfiniteLossVariant(typeKey, variant);
+
+  els.rrInfiniteNote.hidden = !infinite;
+  els.rrLossBasisInput.disabled = infinite;
+  els.rrPremiumInput.disabled = infinite || group === "buy";
+
+  if (infinite) {
+    els.rrLossBasisLabel.textContent = "損失額(無限大)";
+  } else if (group === "buy") {
+    els.rrLossBasisLabel.textContent = "支払いプレミアム額";
+  } else if (variant === "spread") {
+    els.rrLossBasisLabel.textContent = "権利行使価格の差額(スプレッド幅)";
+  } else {
+    els.rrLossBasisLabel.textContent = "権利行使価格";
+  }
+}
+
+function renderRiskReward(t) {
+  const closes = periodClosesOf(t);
+  const dates = periodDatesOf(t);
+  const type = OPTION_TYPES[t.typeKey];
+  const group = typeGroup(t.typeKey);
+  const infinite = isInfiniteLossVariant(t.typeKey, t.rrVariant);
+
+  // 母集団1: 絞り込みなし(「分析結果」と同じ母集団)
+  const baseAnalysis = computeItmAnalysis(closes, {
+    ratio: t.ratio, itmWhen: type.itmWhen, window: t.windowDays, group,
+  }, dates);
+  const baseItmDaysList = baseAnalysis.perEntry.map((e) => e.itmDaysInWindow);
+  const baseWin = computeWinRateByItmDays(baseItmDaysList, t.rrThreshold, group);
+
+  // 母集団2: エントリー条件で絞り込みあり(分母は絞り込み後の該当日数)
+  const conditional = computeConditionalItmAnalysis(closes, {
+    ratio: t.ratio, itmWhen: type.itmWhen, window: t.windowDays,
+    conditionMode: t.conditionMode, momentumLookback: t.momentumLookback,
+    minMatchDays: t.minMatchDays, momentumDirection: t.momentumDirection,
+    momentumThresholdPct: t.momentumThresholdPct,
+  });
+  const condWin = computeWinRateByItmDays(conditional.itmDaysList, t.rrThreshold, group);
+
+  // 実際の最大損失額。売りは(権利行使価格 or スプレッド幅)−受取プレミアム、
+  // 買いは支払いプレミアムそのもの。損益分岐の計算に使うプレミアムも、
+  // 売りは受取プレミアム、買いは支払いプレミアム(=損失額入力そのもの)。
+  let actualMaxLoss = null;
+  let premiumForBreakEven = null;
+  if (!infinite) {
+    if (group === "sell") {
+      premiumForBreakEven = t.rrPremium;
+      actualMaxLoss = (t.rrLossBasis !== null && t.rrPremium !== null) ? t.rrLossBasis - t.rrPremium : null;
+    } else {
+      premiumForBreakEven = t.rrLossBasis;
+      actualMaxLoss = t.rrLossBasis;
+    }
+  }
+
+  renderRiskRewardBlock(els.rrBaseSummary, els.rrBaseWarning, {
+    group, infinite, winInfo: baseWin, actualMaxLoss, premiumForBreakEven,
+  });
+  renderRiskRewardBlock(els.rrCondSummary, els.rrCondWarning, {
+    group, infinite, winInfo: condWin, actualMaxLoss, premiumForBreakEven,
+  });
+
+  els.riskRewardCard.hidden = false;
+}
+
+// リスクリワード分析の1ブロック(絞り込みなし/絞り込みあり、それぞれ)を描画する。
+function renderRiskRewardBlock(summaryEl, warningEl, { group, infinite, winInfo, actualMaxLoss, premiumForBreakEven }) {
+  const { total, winRate } = winInfo;
+  const winRateText = winRate === null ? "―" : (winRate * 100).toFixed(1) + "%";
+  const maxLossText = infinite ? "無限大" : (actualMaxLoss === null ? "―" : actualMaxLoss.toFixed(2));
+
+  let breakEvenLabel;
+  let breakEvenValue;
+  let verdictHtml;
+  if (group === "sell") {
+    breakEvenLabel = "損益分岐の最大許容損失額";
+    breakEvenValue = infinite ? null : breakEvenMaxLoss(premiumForBreakEven, winRate);
+    if (infinite) {
+      verdictHtml = `<span class="badge b6">損失無限大のため判定不可</span>`;
+    } else if (breakEvenValue === null || actualMaxLoss === null) {
+      verdictHtml = `<span class="badge b-neutral">入力待ち</span>`;
+    } else {
+      const favorable = actualMaxLoss <= breakEvenValue;
+      verdictHtml = `<span class="badge ${favorable ? "b0" : "b6"}">${favorable ? "統計的に有利" : "統計的に不利"}</span>`;
+    }
+  } else {
+    breakEvenLabel = "損益分岐に必要な最低利益額(参考)";
+    breakEvenValue = breakEvenMinGain(premiumForBreakEven, winRate);
+    verdictHtml = `<span class="badge b-neutral">参考値（実際の利益額とご自身で比較してください）</span>`;
+  }
+
+  const winRateLabel = group === "sell" ? "勝率(負けない確率)" : "勝率(ITMを勝ちとした確率)";
+  const items = [
+    { label: "母数(件数)", value: total.toLocaleString("ja-JP") },
+    { label: winRateLabel, value: winRateText },
+    { label: "実際の最大損失額", value: maxLossText },
+    { label: breakEvenLabel, value: breakEvenValue === null ? "―" : (Number.isFinite(breakEvenValue) ? breakEvenValue.toFixed(2) : "無限大") },
+  ];
+
+  summaryEl.innerHTML = items.map((it) => `<div class="stat"><b>${it.value}</b><span>${it.label}</span></div>`).join("")
+    + `<div class="stat">${verdictHtml}<br><span>判定</span></div>`;
+
+  const level = sampleWarningLevel(total);
+  if (level === "strong") {
+    warningEl.className = "disc disc-strong";
+    warningEl.hidden = false;
+    warningEl.textContent = `件数が${total}件と非常に少なく、勝率の信頼性が低い可能性があります。判定期間を短くする、集計期間を延ばす、絞り込み条件を緩めるなどをご検討ください。`;
+  } else if (level === "mild") {
+    warningEl.className = "disc";
+    warningEl.hidden = false;
+    warningEl.textContent = `件数が${total}件とやや少なく、勝率の信頼性がやや低い可能性があります。判定期間を短くする、集計期間を延ばす、絞り込み条件を緩めるなどで件数を増やせる場合があります。`;
+  } else {
+    warningEl.hidden = true;
+  }
+}
+
 // badgeLevel(0=最も有利〜6=最も不利)をヒートマップ同様の色クラスに変換する
 function badgeLevelClass(level) {
   return level === null || level === undefined ? "b-neutral" : `b${level}`;
@@ -624,6 +801,10 @@ function init() {
   els.minMatchDaysInput.addEventListener("input", debounce(onFormChange, 250));
   els.momentumDirectionSelect.addEventListener("change", onFormChange);
   els.momentumThresholdInput.addEventListener("input", debounce(onFormChange, 250));
+  els.rrVariantSelect.addEventListener("change", onFormChange);
+  els.rrThresholdInput.addEventListener("input", debounce(onFormChange, 250));
+  els.rrLossBasisInput.addEventListener("input", debounce(onFormChange, 250));
+  els.rrPremiumInput.addEventListener("input", debounce(onFormChange, 250));
   els.shareBtn.addEventListener("click", onShareLink);
   els.openDetailBtn.addEventListener("click", onOpenDetail);
 }
