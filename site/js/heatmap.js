@@ -63,13 +63,16 @@ function groupByMonth(perEntry) {
 export function renderEntryHeatmap(perEntry, window, group) {
   const months = groupByMonth(perEntry);
 
-  return months.map(({ yearMonth, entries }) => {
+  const blocks = months.map(({ yearMonth, entries }) => {
     const cells = entries.map(({ date, itmDaysInWindow }) => {
       const dateLabel = date || "―";
       const title = `${dateLabel}: 判定期間${window}日中${itmDaysInWindow}日ITM`;
       return `<div class="hm-cell" style="background:${cellColor(itmDaysInWindow, group)}" title="${title}"></div>`;
     }).join("");
     const label = yearMonth ? monthLabel(yearMonth) : "―";
-    return `<div class="hm-month"><div class="hm-month-label">${label}</div><div class="hm-grid">${cells}</div></div>`;
+    // 1ヶ月の最大営業日数は23日程度なので、5×5(25マス)の正方形に収まる。
+    return `<div class="hm-month"><div class="hm-month-label">${label}</div><div class="hm-grid hm-grid-5x5">${cells}</div></div>`;
   }).join("");
+
+  return `<div class="hm-months">${blocks}</div>`;
 }

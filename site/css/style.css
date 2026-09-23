@@ -161,11 +161,13 @@ button:disabled{opacity:.6;cursor:default}
 #conditionCard[hidden]{display:none}
 
 /* エントリー日ごとのヒートマップ: 判定期間内のITM日数(絶対値)を7段階配色で表す
-   (色はjs/heatmap.jsでインラインstyleとして付与) */
-.hm-month{margin-bottom:10px}
-.hm-month-label{font-size:11px;font-weight:700;color:var(--muted);margin-bottom:3px}
+   (色はjs/heatmap.jsでインラインstyleとして付与)。1ヶ月の最大営業日数は23日程度
+   なので、各月を5×5(25マス)の正方形にまとめ、月ごとの正方形を並べて表示する。 */
+.hm-months{display:flex;flex-wrap:wrap;gap:14px 18px;margin:8px 0}
+.hm-month{width:63px}
+.hm-month-label{font-size:11px;font-weight:700;color:var(--muted);margin-bottom:3px;white-space:nowrap}
 .hm-grid{display:flex;flex-wrap:wrap;gap:2px;margin:0 0 8px}
-.hm-month .hm-grid{margin:0}
+.hm-grid-5x5{display:grid;grid-template-columns:repeat(5,11px);gap:2px}
 .hm-cell{width:11px;height:11px;border-radius:2px;cursor:default}
 .hm-legend{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--muted);margin-top:6px;flex-wrap:wrap}
 .hm-legend .hm-cell{cursor:default;flex:none}
