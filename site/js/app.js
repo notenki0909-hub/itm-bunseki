@@ -35,7 +35,9 @@ function tabRecipe(t) {
     ratio: t.ratio,
     windowDays: t.windowDays,
     periodDays: t.periodDays,
+    conditionMode: t.conditionMode,
     momentumLookback: t.momentumLookback,
+    minMatchDays: t.minMatchDays,
     momentumDirection: t.momentumDirection,
     momentumThresholdPct: t.momentumThresholdPct,
   };
@@ -48,7 +50,9 @@ function applyRecipe(t, rec) {
     ratio: rec.ratio ?? t.ratio,
     windowDays: rec.windowDays ?? t.windowDays,
     periodDays: rec.periodDays ?? t.periodDays,
+    conditionMode: rec.conditionMode || t.conditionMode,
     momentumLookback: rec.momentumLookback ?? t.momentumLookback,
+    minMatchDays: rec.minMatchDays ?? t.minMatchDays,
     momentumDirection: rec.momentumDirection || t.momentumDirection,
     momentumThresholdPct: rec.momentumThresholdPct ?? t.momentumThresholdPct,
   });
@@ -208,11 +212,15 @@ const els = {
   entryHeatmapLegend: document.getElementById("entryHeatmapLegend"),
 
   conditionCard: document.getElementById("conditionCard"),
+  conditionModeSelect: document.getElementById("conditionModeSelect"),
+  conditionModeNote: document.getElementById("conditionModeNote"),
   momentumLookbackSelect: document.getElementById("momentumLookbackSelect"),
+  minMatchDaysInput: document.getElementById("minMatchDaysInput"),
   momentumDirectionSelect: document.getElementById("momentumDirectionSelect"),
   momentumThresholdInput: document.getElementById("momentumThresholdInput"),
   matchedCount: document.getElementById("matchedCount"),
   matchedItmCount: document.getElementById("matchedItmCount"),
+  matchedTotalItmDays: document.getElementById("matchedTotalItmDays"),
   matchedProb: document.getElementById("matchedProb"),
   todayMatchBadge: document.getElementById("todayMatchBadge"),
 };
@@ -231,7 +239,9 @@ function newTabState() {
     ratio: OPTION_TYPES.put_sell.ratio,
     windowDays: DEFAULT_WINDOW,
     periodDays: DEFAULT_PERIOD_DAYS,
+    conditionMode: "lookback",
     momentumLookback: DEFAULT_MOMENTUM_LOOKBACK,
+    minMatchDays: 3,
     momentumDirection: "down",
     momentumThresholdPct: 5,
   };
@@ -270,9 +280,12 @@ function switchTab(id) {
   els.ratioInput.value = t.ratio;
   els.windowSelect.value = String(t.windowDays);
   els.periodSelect.value = String(t.periodDays);
+  els.conditionModeSelect.value = t.conditionMode;
   els.momentumLookbackSelect.value = String(t.momentumLookback);
+  els.minMatchDaysInput.value = t.minMatchDays;
   els.momentumDirectionSelect.value = t.momentumDirection;
   els.momentumThresholdInput.value = t.momentumThresholdPct;
+  updateConditionModeUI(t.conditionMode);
   setStatus("");
 
   if (t.closesFull) {
@@ -397,12 +410,25 @@ function onFormChange() {
   t.ratio = Number(els.ratioInput.value) || OPTION_TYPES[t.typeKey].ratio;
   t.windowDays = Number(els.windowSelect.value) || DEFAULT_WINDOW;
   t.periodDays = Number(els.periodSelect.value) || DEFAULT_PERIOD_DAYS;
+  t.conditionMode = els.conditionModeSelect.value;
   t.momentumLookback = Number(els.momentumLookbackSelect.value) || DEFAULT_MOMENTUM_LOOKBACK;
+  t.minMatchDays = Number(els.minMatchDaysInput.value) || 1;
   t.momentumDirection = els.momentumDirectionSelect.value;
   t.momentumThresholdPct = Number(els.momentumThresholdInput.value) || 0;
+  updateConditionModeUI(t.conditionMode);
   if (t.closesFull) renderAll(t);
   renderTabBar();
   persistState();
+}
+
+// 条件タイプに応じて、使わない入力欄を無効化し、簡単な説明を出す。
+function updateConditionModeUI(mode) {
+  const isCount = mode === "countWithin7";
+  els.momentumLookbackSelect.disabled = isCount;
+  els.minMatchDaysInput.disabled = !isCount;
+  els.conditionModeNote.textContent = isCount
+    ? "直近7営業日それぞれ(1〜7営業日前比較)について、指定した変化率条件を満たす日を数え、その日数が指定した日数以上あった日をエントリー日とします。「比較営業日数」は使いません。"
+    : "指定した比較営業日数の1点だけで、変化率条件を満たすかを判定します。";
 }
 
 // 集計期間で末尾N件にスライスした配列を返す(ローカル計算のみ。APIは叩かない)
@@ -496,21 +522,39 @@ function renderConditionCard(t) {
     ratio: t.ratio,
     itmWhen: type.itmWhen,
     window: t.windowDays,
+    conditionMode: t.conditionMode,
     momentumLookback: t.momentumLookback,
+    minMatchDays: t.minMatchDays,
     momentumDirection: t.momentumDirection,
     momentumThresholdPct: t.momentumThresholdPct,
   });
 
   els.matchedCount.textContent = conditional.matchedCount.toLocaleString("ja-JP");
   els.matchedItmCount.textContent = conditional.matchedItmCount.toLocaleString("ja-JP");
+  els.matchedTotalItmDays.textContent = conditional.matchedTotalItmDays.toLocaleString("ja-JP");
   els.matchedProb.textContent = conditional.matchedItmProb === null
     ? "―"
     : (conditional.matchedItmProb * 100).toFixed(1) + "%";
 
-  const todayMomentum = computeMomentum(closes, closes.length - 1, t.momentumLookback);
   const thresholdFrac = t.momentumThresholdPct / 100;
-  const todayMatches = todayMomentum === null ? null
-    : t.momentumDirection === "down" ? todayMomentum <= -thresholdFrac : todayMomentum >= thresholdFrac;
+  const latestIdx = closes.length - 1;
+  let todayMatches;
+  if (t.conditionMode === "countWithin7") {
+    let hitDays = 0;
+    let anyData = false;
+    for (let k = 1; k <= 7; k++) {
+      const m = computeMomentum(closes, latestIdx, k);
+      if (m === null) continue;
+      anyData = true;
+      const hit = t.momentumDirection === "down" ? m <= -thresholdFrac : m >= thresholdFrac;
+      if (hit) hitDays++;
+    }
+    todayMatches = !anyData ? null : hitDays >= t.minMatchDays;
+  } else {
+    const todayMomentum = computeMomentum(closes, latestIdx, t.momentumLookback);
+    todayMatches = todayMomentum === null ? null
+      : t.momentumDirection === "down" ? todayMomentum <= -thresholdFrac : todayMomentum >= thresholdFrac;
+  }
 
   els.todayMatchBadge.textContent = todayMatches === null ? "データ不足" : todayMatches ? "該当する" : "該当しない";
   els.todayMatchBadge.className = "badge " + (todayMatches === null ? "b-neutral" : todayMatches ? "b-match" : "b-nomatch");
@@ -574,7 +618,9 @@ function init() {
   els.ratioInput.addEventListener("input", debounce(onFormChange, 250));
   els.windowSelect.addEventListener("change", onFormChange);
   els.periodSelect.addEventListener("change", onFormChange);
+  els.conditionModeSelect.addEventListener("change", onFormChange);
   els.momentumLookbackSelect.addEventListener("change", onFormChange);
+  els.minMatchDaysInput.addEventListener("input", debounce(onFormChange, 250));
   els.momentumDirectionSelect.addEventListener("change", onFormChange);
   els.momentumThresholdInput.addEventListener("input", debounce(onFormChange, 250));
   els.shareBtn.addEventListener("click", onShareLink);

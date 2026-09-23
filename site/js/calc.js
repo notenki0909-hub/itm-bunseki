@@ -160,28 +160,53 @@ export function computeRecentMomentumStrip(closes, maxLookback = 7) {
   return strip;
 }
 
+// エントリー条件で絞り込みの、値動き条件の判定方法。
+// "lookback": N営業日前と比較して、指定した変化率条件を満たすか(単一日の比較)。
+// "countWithin7": 直近7営業日それぞれ(1〜7営業日前比較)について条件を満たす日を数え、
+//   その日数が指定した日数以上あるか(何日も同じ方向に動き続けたか、を見る)。
+export const CONDITION_MODES = ["lookback", "countWithin7"];
+const CONDITION_WITHIN_DAYS = 7;
+
 /**
  * 「過去、直近の値動きが今日と似ていた日」に絞り込んだ場合のITM確率を計算する。
- * computeItmAnalysisと同じ判定基準を使うが、対象エントリーを momentum条件でフィルタする点が異なる。
+ * computeItmAnalysisと同じ判定基準を使うが、対象エントリーを値動き条件でフィルタする点が異なる。
  *
  * @param {number[]} closes
  * @param {{ratio:number, itmWhen:'below'|'above', window:number,
- *           momentumLookback:number, momentumDirection:'down'|'up', momentumThresholdPct:number}} params
- * @returns {{matchedCount:number, matchedItmCount:number, matchedItmProb:number|null}}
+ *           conditionMode:'lookback'|'countWithin7', momentumLookback:number,
+ *           momentumDirection:'down'|'up', momentumThresholdPct:number, minMatchDays:number}} params
+ * @returns {{matchedCount:number, matchedItmCount:number, matchedItmProb:number|null, matchedTotalItmDays:number}}
  */
 export function computeConditionalItmAnalysis(closes, params) {
-  const { ratio, itmWhen, window, momentumLookback, momentumDirection, momentumThresholdPct } = params;
+  const {
+    ratio, itmWhen, window, momentumDirection, momentumThresholdPct,
+    conditionMode = "lookback", momentumLookback, minMatchDays,
+  } = params;
   const n = closes.length;
   const isBelow = itmWhen === "below";
   const thresholdFrac = momentumThresholdPct / 100;
+  const startIndex = conditionMode === "countWithin7" ? CONDITION_WITHIN_DAYS : momentumLookback;
 
   let matchedCount = 0;
   let matchedItmCount = 0;
+  let matchedTotalItmDays = 0;
 
-  for (let i = momentumLookback; i + window < n; i++) {
-    const momentum = computeMomentum(closes, i, momentumLookback);
-    if (momentum === null) continue;
-    const matches = momentumDirection === "down" ? momentum <= -thresholdFrac : momentum >= thresholdFrac;
+  for (let i = startIndex; i + window < n; i++) {
+    let matches;
+    if (conditionMode === "countWithin7") {
+      let hitDays = 0;
+      for (let k = 1; k <= CONDITION_WITHIN_DAYS; k++) {
+        const m = computeMomentum(closes, i, k);
+        if (m === null) continue;
+        const hit = momentumDirection === "down" ? m <= -thresholdFrac : m >= thresholdFrac;
+        if (hit) hitDays++;
+      }
+      matches = hitDays >= minMatchDays;
+    } else {
+      const momentum = computeMomentum(closes, i, momentumLookback);
+      if (momentum === null) continue;
+      matches = momentumDirection === "down" ? momentum <= -thresholdFrac : momentum >= thresholdFrac;
+    }
     if (!matches) continue;
 
     const strike = closes[i] * ratio;
@@ -189,18 +214,21 @@ export function computeConditionalItmAnalysis(closes, params) {
     matchedCount++;
 
     let itmAny = false;
+    let itmDaysInWindow = 0;
     for (let d = 1; d <= window; d++) {
       const fwd = closes[i + d] / strike - 1;
       const itm = isBelow ? fwd < 0 : fwd > 0;
-      if (itm) { itmAny = true; break; }
+      if (itm) { itmAny = true; itmDaysInWindow++; }
     }
     if (itmAny) matchedItmCount++;
+    matchedTotalItmDays += itmDaysInWindow;
   }
 
   return {
     matchedCount,
     matchedItmCount,
     matchedItmProb: matchedCount ? matchedItmCount / matchedCount : null,
+    matchedTotalItmDays,
   };
 }
 

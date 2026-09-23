@@ -93,8 +93,19 @@
     <p class="sub" style="margin:0 0 10px"><b>判定基準：</b>上の「分析結果」と同じ権利行使価格の基準に加えて、<b>指定した値動き条件に当てはまった日だけ</b>に絞ってエントリーした場合を判定します（分析結果の対象日を、値動き条件でさらに絞り込んだものです）。</p>
     <div class="form-row">
       <div class="field">
+        <label for="conditionModeSelect">条件の種類</label>
+        <select id="conditionModeSelect">
+          <option value="lookback">N営業日前と比較</option>
+          <option value="countWithin7">直近7営業日中の該当日数</option>
+        </select>
+      </div>
+      <div class="field">
         <label for="momentumLookbackSelect">比較営業日数</label>
         <select id="momentumLookbackSelect"></select>
+      </div>
+      <div class="field">
+        <label for="minMatchDaysInput">該当日数(◯日以上)</label>
+        <input id="minMatchDaysInput" type="number" step="1" min="1" max="7" value="3">
       </div>
       <div class="field">
         <label for="momentumDirectionSelect">方向</label>
@@ -108,14 +119,17 @@
         <input id="momentumThresholdInput" type="number" step="0.5" min="0" value="5">
       </div>
     </div>
+    <p class="sub" id="conditionModeNote" style="margin:-6px 0 10px"></p>
     <div class="summary">
-      <div class="stat" data-target="conditionExplain" data-note="集計期間（− 判定期間 − 比較営業日数）の中で、指定した値動き条件に当てはまった日数です。">
+      <div class="stat" data-target="conditionExplain" data-note="集計期間（− 判定期間など）の中で、指定した値動き条件に当てはまった日数です。">
         <b id="matchedCount">―</b><span>該当日数</span></div>
       <div class="stat" data-target="conditionExplain" data-note="該当日数のうち、判定期間内に1日でもITMになった日の実数です。">
         <b id="matchedItmCount">―</b><span>ITM発生エントリー数</span></div>
+      <div class="stat" data-target="conditionExplain" data-note="該当日について、判定期間内でITMだった日数を合計したものです。1つのエントリーが何日もITMのままだと大きくなるため、ITM発生エントリー数とは異なる指標です。">
+        <b id="matchedTotalItmDays">―</b><span>ITM発生延べ日数</span></div>
       <div class="stat" data-target="conditionExplain" data-note="ITM発生エントリー数 ÷ 該当日数。条件に当てはまった日だけで見た割合です。">
         <b id="matchedProb">―</b><span>ITM発生エントリー数の割合</span></div>
-      <div class="stat" data-target="conditionExplain" data-note="今の値動きが、上で指定した条件（比較営業日数・方向・変化率）に当てはまるかどうかです。">
+      <div class="stat" data-target="conditionExplain" data-note="今の値動きが、上で指定した条件に当てはまるかどうかです。">
         <span class="badge" id="todayMatchBadge">―</span><br><span>本日はこの条件に</span></div>
     </div>
   </div>
