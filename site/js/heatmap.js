@@ -33,6 +33,27 @@ function cellColor(itmDaysInWindow, group) {
   return band ? band.color : bands[bands.length - 1].color;
 }
 
+function monthLabel(yearMonth) {
+  const [y, m] = yearMonth.split("-");
+  return `${y}年${Number(m)}月`;
+}
+
+// 日付(YYYY-MM-DD)の年月が変わるたびに新しいグループを開始する。
+// perEntryは時系列順のため、同じ年月のエントリーは常に連続している。
+function groupByMonth(perEntry) {
+  const groups = [];
+  let current = null;
+  for (const entry of perEntry) {
+    const yearMonth = entry.date ? entry.date.slice(0, 7) : null;
+    if (!current || current.yearMonth !== yearMonth) {
+      current = { yearMonth, entries: [] };
+      groups.push(current);
+    }
+    current.entries.push(entry);
+  }
+  return groups;
+}
+
 /**
  * @param {{date:string|null, itmDaysInWindow:number}[]} perEntry
  * @param {number} window 判定期間(営業日)
@@ -40,11 +61,15 @@ function cellColor(itmDaysInWindow, group) {
  * @returns {string} HTML文字列
  */
 export function renderEntryHeatmap(perEntry, window, group) {
-  const cells = perEntry.map(({ date, itmDaysInWindow }) => {
-    const dateLabel = date || "―";
-    const title = `${dateLabel}: 判定期間${window}日中${itmDaysInWindow}日ITM`;
-    return `<div class="hm-cell" style="background:${cellColor(itmDaysInWindow, group)}" title="${title}"></div>`;
-  }).join("");
+  const months = groupByMonth(perEntry);
 
-  return `<div class="hm-grid">${cells}</div>`;
+  return months.map(({ yearMonth, entries }) => {
+    const cells = entries.map(({ date, itmDaysInWindow }) => {
+      const dateLabel = date || "―";
+      const title = `${dateLabel}: 判定期間${window}日中${itmDaysInWindow}日ITM`;
+      return `<div class="hm-cell" style="background:${cellColor(itmDaysInWindow, group)}" title="${title}"></div>`;
+    }).join("");
+    const label = yearMonth ? monthLabel(yearMonth) : "―";
+    return `<div class="hm-month"><div class="hm-month-label">${label}</div><div class="hm-grid">${cells}</div></div>`;
+  }).join("");
 }

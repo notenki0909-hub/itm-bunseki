@@ -162,7 +162,10 @@ button:disabled{opacity:.6;cursor:default}
 
 /* エントリー日ごとのヒートマップ: 判定期間内のITM日数(絶対値)を7段階配色で表す
    (色はjs/heatmap.jsでインラインstyleとして付与) */
-.hm-grid{display:flex;flex-wrap:wrap;gap:2px;margin:8px 0}
+.hm-month{margin-bottom:10px}
+.hm-month-label{font-size:11px;font-weight:700;color:var(--muted);margin-bottom:3px}
+.hm-grid{display:flex;flex-wrap:wrap;gap:2px;margin:0 0 8px}
+.hm-month .hm-grid{margin:0}
 .hm-cell{width:11px;height:11px;border-radius:2px;cursor:default}
 .hm-legend{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--muted);margin-top:6px;flex-wrap:wrap}
 .hm-legend .hm-cell{cursor:default;flex:none}
