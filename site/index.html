@@ -172,6 +172,13 @@
         <input id="rrPremiumInput" type="number" step="0.01" min="0" placeholder="例: 1.20">
       </div>
     </div>
+    <div class="form-row">
+      <div class="field">
+        <label for="rrProfitRatioInput" data-target="riskRewardExplain"
+          data-note="反対売買（買い戻し）で決済する場合、買い戻しにも費用がかかるため、実際に手元に残る利益は受取プレミアムの一部にとどまります。受け取ったプレミアムのうち何%を利益として確定させるかを入力してください（未入力の場合は100%＝満期まで保有して受取プレミアムを丸々得たものとして計算します）。買い系を選んでいる間は使わないため入力できません。">利確割合(%)</label>
+        <input id="rrProfitRatioInput" type="number" step="1" min="0" max="100" placeholder="未入力=100%">
+      </div>
+    </div>
     <p class="sub" id="rrInfiniteNote" style="margin:-6px 0 10px" hidden>コール売り(単体)は理論上、損失が無限大になり得るため、上の入力欄は損益分岐の判定には使用しません。</p>
 
     <h3 style="margin:18px 0 8px;font-size:14px">絞り込みなし（分析結果と同じ母集団）</h3>

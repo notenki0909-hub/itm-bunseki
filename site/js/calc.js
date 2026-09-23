@@ -280,6 +280,16 @@ export function computeWinRateByItmDays(itmDaysList, threshold, group) {
 
 // 売り系: 受取プレミアムと勝率から、損益分岐となる「許容できる最大損失額」を算出する。
 // p×プレミアム = (1-p)×損失額 が損益分岐点なので、損失額 = プレミアム×p/(1-p)。
+// 売り系: 反対売買(買い戻し)で決済する場合、受取プレミアムの一部を買い戻しコストとして
+// 支払うため、実際に確定する利益は受取プレミアムの一部(利確割合)にとどまる。
+// 利確割合が未入力(null/undefined)の場合は100%(満額)とみなす。
+export function expectedProfitOnClose(premium, profitRatioPercent) {
+  if (premium === null || !(premium >= 0)) return null;
+  const ratio = (profitRatioPercent === null || profitRatioPercent === undefined) ? 1 : profitRatioPercent / 100;
+  if (!(ratio >= 0)) return null;
+  return premium * ratio;
+}
+
 export function breakEvenMaxLoss(premium, winRate) {
   if (premium === null || winRate === null || !(premium >= 0)) return null;
   if (winRate >= 1) return Infinity;

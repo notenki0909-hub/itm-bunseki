@@ -5,7 +5,7 @@ import {
   computeItmAnalysis, computeConditionalItmAnalysis,
   computeRecentMomentumStrip, computeMomentum, typeGroup, BADGE_LABELS,
   RISK_VARIANT_LABELS, isInfiniteLossVariant, computeWinRateByItmDays,
-  breakEvenMaxLoss, breakEvenMinGain, sampleWarningLevel,
+  breakEvenMaxLoss, breakEvenMinGain, sampleWarningLevel, expectedProfitOnClose,
 } from "./calc.js";
 import { renderDayProbChart, DAY_PROB_BANDS } from "./chart.js";
 import { renderEntryHeatmap, ENTRY_HEATMAP_BANDS } from "./heatmap.js";
@@ -46,6 +46,7 @@ function tabRecipe(t) {
     rrThreshold: t.rrThreshold,
     rrLossBasis: t.rrLossBasis,
     rrPremium: t.rrPremium,
+    rrProfitRatio: t.rrProfitRatio,
   };
 }
 
@@ -65,6 +66,7 @@ function applyRecipe(t, rec) {
     rrThreshold: rec.rrThreshold ?? t.rrThreshold,
     rrLossBasis: rec.rrLossBasis ?? t.rrLossBasis,
     rrPremium: rec.rrPremium ?? t.rrPremium,
+    rrProfitRatio: rec.rrProfitRatio ?? t.rrProfitRatio,
   });
 }
 
@@ -240,6 +242,7 @@ const els = {
   rrLossBasisInput: document.getElementById("rrLossBasisInput"),
   rrLossBasisLabel: document.getElementById("rrLossBasisLabel"),
   rrPremiumInput: document.getElementById("rrPremiumInput"),
+  rrProfitRatioInput: document.getElementById("rrProfitRatioInput"),
   rrInfiniteNote: document.getElementById("rrInfiniteNote"),
   rrBaseSummary: document.getElementById("rrBaseSummary"),
   rrBaseWarning: document.getElementById("rrBaseWarning"),
@@ -270,6 +273,7 @@ function newTabState() {
     rrThreshold: 4,
     rrLossBasis: null,
     rrPremium: null,
+    rrProfitRatio: null,
   };
 }
 
@@ -318,6 +322,7 @@ function switchTab(id) {
   els.rrThresholdInput.value = t.rrThreshold;
   els.rrLossBasisInput.value = t.rrLossBasis ?? "";
   els.rrPremiumInput.value = t.rrPremium ?? "";
+  els.rrProfitRatioInput.value = t.rrProfitRatio ?? "";
   updateRiskRewardInputUI(t.typeKey, t.rrVariant);
   setStatus("");
 
@@ -462,6 +467,7 @@ function onFormChange() {
   t.rrThreshold = Number(els.rrThresholdInput.value) || 1;
   t.rrLossBasis = els.rrLossBasisInput.value === "" ? null : Number(els.rrLossBasisInput.value);
   t.rrPremium = els.rrPremiumInput.value === "" ? null : Number(els.rrPremiumInput.value);
+  t.rrProfitRatio = els.rrProfitRatioInput.value === "" ? null : Number(els.rrProfitRatioInput.value);
   updateRiskRewardInputUI(t.typeKey, t.rrVariant);
 
   if (t.closesFull) renderAll(t);
@@ -628,6 +634,7 @@ function updateRiskRewardInputUI(typeKey, variant) {
   els.rrInfiniteNote.hidden = !infinite;
   els.rrLossBasisInput.disabled = infinite;
   els.rrPremiumInput.disabled = infinite || group === "buy";
+  els.rrProfitRatioInput.disabled = infinite || group === "buy";
 
   if (infinite) {
     els.rrLossBasisLabel.textContent = "損失額(無限大)";
@@ -663,14 +670,15 @@ function renderRiskReward(t) {
   });
   const condWin = computeWinRateByItmDays(conditional.itmDaysList, t.rrThreshold, group);
 
-  // 実際の最大損失額。売りは(権利行使価格 or スプレッド幅)−受取プレミアム、
-  // 買いは支払いプレミアムそのもの。損益分岐の計算に使うプレミアムも、
-  // 売りは受取プレミアム、買いは支払いプレミアム(=損失額入力そのもの)。
+  // 実際の最大損失額。売りは(権利行使価格 or スプレッド幅)−受取プレミアム(満期まで
+  // 保有した場合の最悪ケースなので利確割合は関係しない)、買いは支払いプレミアムそのもの。
+  // 損益分岐の計算に使う「勝ちトレードの利益額」は、売りは受取プレミアム×利確割合
+  // (反対売買の買い戻しコスト控除後の予想利益)、買いは支払いプレミアム(=損失額入力そのもの)。
   let actualMaxLoss = null;
   let premiumForBreakEven = null;
   if (!infinite) {
     if (group === "sell") {
-      premiumForBreakEven = t.rrPremium;
+      premiumForBreakEven = expectedProfitOnClose(t.rrPremium, t.rrProfitRatio);
       actualMaxLoss = (t.rrLossBasis !== null && t.rrPremium !== null) ? t.rrLossBasis - t.rrPremium : null;
     } else {
       premiumForBreakEven = t.rrLossBasis;
@@ -679,51 +687,93 @@ function renderRiskReward(t) {
   }
 
   renderRiskRewardBlock(els.rrBaseSummary, els.rrBaseWarning, {
-    group, infinite, winInfo: baseWin, actualMaxLoss, premiumForBreakEven,
+    group, infinite, winInfo: baseWin, actualMaxLoss, premiumForBreakEven, isBase: true,
   });
   renderRiskRewardBlock(els.rrCondSummary, els.rrCondWarning, {
-    group, infinite, winInfo: condWin, actualMaxLoss, premiumForBreakEven,
+    group, infinite, winInfo: condWin, actualMaxLoss, premiumForBreakEven, isBase: false,
   });
 
   els.riskRewardCard.hidden = false;
+  setupStatExplain();
 }
 
 // リスクリワード分析の1ブロック(絞り込みなし/絞り込みあり、それぞれ)を描画する。
-function renderRiskRewardBlock(summaryEl, warningEl, { group, infinite, winInfo, actualMaxLoss, premiumForBreakEven }) {
+function renderRiskRewardBlock(summaryEl, warningEl, { group, infinite, winInfo, actualMaxLoss, premiumForBreakEven, isBase }) {
   const { total, winRate } = winInfo;
   const winRateText = winRate === null ? "―" : (winRate * 100).toFixed(1) + "%";
   const maxLossText = infinite ? "無限大" : (actualMaxLoss === null ? "―" : actualMaxLoss.toFixed(2));
+  const T = "riskRewardExplain";
 
   let breakEvenLabel;
   let breakEvenValue;
+  let breakEvenNote;
   let verdictHtml;
+  let verdictNote;
+  let lossRateSub = null;
   if (group === "sell") {
-    breakEvenLabel = "損益分岐の最大許容損失額";
+    breakEvenLabel = "一回の損切における上限額";
     breakEvenValue = infinite ? null : breakEvenMaxLoss(premiumForBreakEven, winRate);
+    breakEvenNote = "勝率をもとに、勝ちトレードで得られる予想利益の合計と、負けトレードでの損失の合計がちょうど釣り合う「1回あたりの損失額」の上限です。例えば勝率84%なら、10回のトレードのうち平均8.4回勝って予想利益を得て、1.6回負けるとすると、8.4回分の予想利益の合計と1.6回分の損失の合計がちょうど釣り合う、1回あたりの損失額にあたります。実際の最大損失額がこの金額以下なら統計的に有利、上回っていれば不利です。";
     if (infinite) {
       verdictHtml = `<span class="badge b6">損失無限大のため判定不可</span>`;
+      verdictNote = "コール売り(単体)は理論上、株価に上限がないため損失が無限大になり得ます。実際の最大損失額が確定できないため、損益分岐の判定はできません。";
     } else if (breakEvenValue === null || actualMaxLoss === null) {
       verdictHtml = `<span class="badge b-neutral">入力待ち</span>`;
+      verdictNote = "損失額入力・受取プレミアム額（必要なら利確割合も）を入力すると判定されます。";
     } else {
       const favorable = actualMaxLoss <= breakEvenValue;
       verdictHtml = `<span class="badge ${favorable ? "b0" : "b6"}">${favorable ? "統計的に有利" : "統計的に不利"}</span>`;
+      verdictNote = "実際の最大損失額と、左の「一回の損切における上限額」を比較した結果です。実際の最大損失額が上限額以下なら「統計的に有利」、上回っていれば「統計的に不利」です。";
+    }
+    if (!infinite && winRate !== null) {
+      lossRateSub = `敗率は${((1 - winRate) * 100).toFixed(1)}%まで`;
     }
   } else {
     breakEvenLabel = "損益分岐に必要な最低利益額(参考)";
     breakEvenValue = breakEvenMinGain(premiumForBreakEven, winRate);
+    breakEvenNote = "支払ったプレミアム額と勝率から、損益分岐点となる「勝ったときに最低限必要な利益額」の目安を算出したものです（支払いプレミアム×(1−勝率)÷勝率）。";
     verdictHtml = `<span class="badge b-neutral">参考値（実際の利益額とご自身で比較してください）</span>`;
+    verdictNote = "買い系は損失が支払いプレミアムに固定される一方、勝ったときの利益額は銘柄の値動き次第で変動し、このツールでは追跡していません。そのため有利/不利の自動判定は行わず、左の金額を参考値として表示しています。";
   }
 
   const winRateLabel = group === "sell" ? "勝率(負けない確率)" : "勝率(ITMを勝ちとした確率)";
-  const items = [
-    { label: "母数(件数)", value: total.toLocaleString("ja-JP") },
-    { label: winRateLabel, value: winRateText },
-    { label: "実際の最大損失額", value: maxLossText },
-    { label: breakEvenLabel, value: breakEvenValue === null ? "―" : (Number.isFinite(breakEvenValue) ? breakEvenValue.toFixed(2) : "無限大") },
-  ];
+  const winRateNote = group === "sell"
+    ? "判定期間内のITM日数がしきい値未満だった(負けなかった)エントリー日の割合です。売りはITMが少ないほど有利なため「負けない確率」と表現しています。"
+    : "判定期間内のITM日数がしきい値以上だった(勝った)エントリー日の割合です。買いはITMが多いほど有利なため「ITMを勝ちとした確率」と表現しています。";
+  const winRateSub = isBase ? "いつエントリーしてもこの勝率" : null;
+  const maxLossNote = infinite
+    ? "コール売り(単体)は株価に上限がないため、理論上損失は無限大になり得ます。"
+    : group === "sell"
+      ? "損失額入力(権利行使価格またはスプレッド幅)から受取プレミアム額を差し引いた、満期までITMのまま保有した場合の最悪ケースの損失額です。"
+      : "支払ったプレミアム額そのものが、このポジションの最大損失額です(それ以上の損失は発生しません)。";
+  const totalNote = isBase
+    ? "「分析結果」と同じ母集団(集計期間−判定期間)の件数です。"
+    : "「エントリー条件で絞り込み」で指定した値動き条件に当てはまった日数(該当日数)です。絞り込み後の件数を分母にすることで、実際にエントリーする場面だけに絞った勝率になります。";
 
-  summaryEl.innerHTML = items.map((it) => `<div class="stat"><b>${it.value}</b><span>${it.label}</span></div>`).join("")
-    + `<div class="stat">${verdictHtml}<br><span>判定</span></div>`;
+  const items = [
+    { label: "母数(件数)", value: total.toLocaleString("ja-JP"), note: totalNote },
+    { label: winRateLabel, value: winRateText, note: winRateNote, sub: winRateSub },
+    { label: "実際の最大損失額", value: maxLossText, note: maxLossNote },
+  ];
+  if (group === "sell" && !infinite) {
+    const profitText = premiumForBreakEven === null ? "―" : premiumForBreakEven.toFixed(2);
+    items.push({
+      label: "予想利益(利確時)", value: profitText,
+      note: "受取プレミアム額×利確割合。反対売買(買い戻し)で決済する際、買い戻しコストを差し引いて実際に手元に残る利益の見込み額です(利確割合が未入力の場合は受取プレミアム額そのもの＝100%として計算しています)。",
+    });
+  }
+  items.push({
+    label: breakEvenLabel,
+    value: breakEvenValue === null ? "―" : (Number.isFinite(breakEvenValue) ? breakEvenValue.toFixed(2) : "無限大"),
+    note: breakEvenNote,
+    sub: lossRateSub,
+  });
+
+  summaryEl.innerHTML = items.map((it) =>
+    `<div class="stat" data-target="${T}" data-note="${it.note}"><b>${it.value}</b><span>${it.label}</span>`
+    + (it.sub ? `<span class="stat-sub">${it.sub}</span>` : "") + `</div>`
+  ).join("")
+    + `<div class="stat" data-target="${T}" data-note="${verdictNote}">${verdictHtml}<br><span>判定</span></div>`;
 
   const level = sampleWarningLevel(total);
   if (level === "strong") {
@@ -746,9 +796,13 @@ function badgeLevelClass(level) {
 
 // 各.stat項目・グラフの見出し・フォーム項目のラベルをクリックすると、対応する
 // data-target先(直後のexplain-box)に説明を表示する。同じ項目をもう一度クリック
-// すると閉じる(トグル)。
+// すると閉じる(トグル)。リスクリワード分析の.stat項目は再描画のたびにDOMごと
+// 作り直されるため、この関数は再描画後にも呼び直される。既に配線済みの要素
+// (静的な項目)に二重で登録しないよう、配線済みフラグで判定する。
 function setupStatExplain() {
   document.querySelectorAll(".stat[data-target], .chart-title[data-target], .field label[data-target]").forEach((el) => {
+    if (el.dataset.explainWired) return;
+    el.dataset.explainWired = "1";
     el.addEventListener("click", () => {
       const targetId = el.dataset.target;
       const box = document.getElementById(targetId);
@@ -805,6 +859,7 @@ function init() {
   els.rrThresholdInput.addEventListener("input", debounce(onFormChange, 250));
   els.rrLossBasisInput.addEventListener("input", debounce(onFormChange, 250));
   els.rrPremiumInput.addEventListener("input", debounce(onFormChange, 250));
+  els.rrProfitRatioInput.addEventListener("input", debounce(onFormChange, 250));
   els.shareBtn.addEventListener("click", onShareLink);
   els.openDetailBtn.addEventListener("click", onOpenDetail);
 }
