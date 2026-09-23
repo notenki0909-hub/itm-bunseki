@@ -70,23 +70,19 @@
       <div class="stat" data-target="resultExplain" data-note="ITM発生エントリー数の割合を、そのタイプにとって有利な方向の確率に変換して7段階評価したものです。赤に近いほど有利、紫に近いほど不利を表します（詳細マトリクスと共通の配色です）。">
         <span class="badge" id="badge">―</span><br><span>総合判定</span></div>
     </div>
-    <div class="chart-title">営業日ごとのITM確率</div>
-    <div id="chartWrap"></div>
+    <div class="hm-legend" id="badgeLegend"></div>
 
-    <div class="chart-title">エントリー日ごとのITM状況（マウスを乗せると日付を表示）</div>
+    <div class="chart-title" id="dayProbTitle" data-target="dayProbExplain"
+      data-note="各営業日について、それまでのエントリー日のうち何%がその日までにITMになっていたかを示します。バーの色はその日のITM率（絶対値）を6段階で表したもので、有利/不利の向きとは連動していません。">過去の営業日ごとのITM確率</div>
+    <div id="dayProbExplain" class="explain-box" hidden></div>
+    <div id="chartWrap"></div>
+    <div class="hm-legend" id="dayProbLegend"></div>
+
+    <div class="chart-title" id="entryHeatmapTitle" data-target="entryHeatmapExplain"
+      data-note="集計期間内の取引開始日を1マスずつ時系列に並べ、その日から判定期間内でITMだった日数を色で表したものです。色は日数（絶対値）を7段階で表したもので、有利/不利の向きとは連動していません。">エントリー日ごとのITM状況（マウスを乗せると日付を表示）</div>
+    <div id="entryHeatmapExplain" class="explain-box" hidden></div>
     <div id="heatmapWrap"></div>
-    <div class="hm-legend">
-      <span>有利</span>
-      <span class="hm-cell L0"></span>
-      <span class="hm-cell L1"></span>
-      <span class="hm-cell L2"></span>
-      <span class="hm-cell L3"></span>
-      <span class="hm-cell L4"></span>
-      <span class="hm-cell L5"></span>
-      <span class="hm-cell L6"></span>
-      <span>不利</span>
-      <span>（判定期間内のITM日数の割合を、そのタイプにとって有利な方向に揃えた色です）</span>
-    </div>
+    <div class="hm-legend" id="entryHeatmapLegend"></div>
 
     <p style="margin:14px 0 0"><button id="openDetailBtn" type="button" class="btn-outline">詳細マトリクスを別ページで見る（元Excel形式）</button></p>
   </div>

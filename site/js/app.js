@@ -3,10 +3,10 @@ import {
   PERIOD_OPTIONS, DEFAULT_PERIOD_DAYS,
   MOMENTUM_LOOKBACK_OPTIONS, DEFAULT_MOMENTUM_LOOKBACK,
   computeItmAnalysis, computeConditionalItmAnalysis,
-  computeRecentMomentumStrip, computeMomentum, typeGroup,
+  computeRecentMomentumStrip, computeMomentum, typeGroup, BADGE_LABELS,
 } from "./calc.js";
-import { renderDayProbChart } from "./chart.js";
-import { renderEntryHeatmap } from "./heatmap.js";
+import { renderDayProbChart, DAY_PROB_BANDS } from "./chart.js";
+import { renderEntryHeatmap, ENTRY_HEATMAP_BANDS } from "./heatmap.js";
 import { initThemeBar } from "./theme.js";
 
 // 複数銘柄・複数タイプを切り替えながら見比べられるよう「タブ」単位で状態を持つ。
@@ -203,6 +203,9 @@ const els = {
   chartWrap: document.getElementById("chartWrap"),
   heatmapWrap: document.getElementById("heatmapWrap"),
   symbolLabel: document.getElementById("symbolLabel"),
+  badgeLegend: document.getElementById("badgeLegend"),
+  dayProbLegend: document.getElementById("dayProbLegend"),
+  entryHeatmapLegend: document.getElementById("entryHeatmapLegend"),
 
   conditionCard: document.getElementById("conditionCard"),
   momentumLookbackSelect: document.getElementById("momentumLookbackSelect"),
@@ -459,9 +462,29 @@ function renderMainAnalysis(t) {
   els.overallProb.textContent = analysis.overallItmProb === null
     ? "―"
     : (analysis.overallItmProb * 100).toFixed(1) + "%";
-  els.chartWrap.innerHTML = renderDayProbChart(analysis.dayProb, typeGroup(t.typeKey));
-  els.heatmapWrap.innerHTML = renderEntryHeatmap(analysis.perEntry, t.windowDays, typeGroup(t.typeKey));
+  els.chartWrap.innerHTML = renderDayProbChart(analysis.dayProb);
+  els.heatmapWrap.innerHTML = renderEntryHeatmap(analysis.perEntry, t.windowDays);
+  els.badgeLegend.innerHTML = renderBadgeLegend(typeGroup(t.typeKey));
+  els.dayProbLegend.innerHTML = renderColorLegend(DAY_PROB_BANDS);
+  els.entryHeatmapLegend.innerHTML = renderColorLegend(ENTRY_HEATMAP_BANDS);
   els.result.hidden = false;
+}
+
+// 総合判定バッジの7段階配色の凡例(選択中のタイプのラベルで表示)
+function renderBadgeLegend(group) {
+  const labels = BADGE_LABELS[group] || BADGE_LABELS.sell;
+  const items = labels.map((label, i) => {
+    return `<span class="badge b${i}" style="padding:2px 8px;font-size:11px">${label}</span>`;
+  }).join("");
+  return `<span>総合判定の凡例（左が有利／右が不利）：</span>${items}`;
+}
+
+// 色つき帯グラフ(営業日ごとのITM確率・エントリー日ごとのITM状況)共通の凡例
+function renderColorLegend(bands) {
+  const items = bands.map((b) => {
+    return `<span class="hm-cell" style="background:${b.color}"></span><span>${b.label}</span>`;
+  }).join("");
+  return items;
 }
 
 function renderConditionCard(t) {
@@ -499,25 +522,25 @@ function badgeLevelClass(level) {
   return level === null || level === undefined ? "b-neutral" : `b${level}`;
 }
 
-// 各.stat項目をクリックすると、対応するセクションの直前(data-target先)に説明を表示する。
-// 同じ項目をもう一度クリックすると閉じる(トグル)。
+// 各.stat項目・グラフの見出しをクリックすると、対応するdata-target先(直後の
+// explain-box)に説明を表示する。同じ項目をもう一度クリックすると閉じる(トグル)。
 function setupStatExplain() {
-  document.querySelectorAll(".stat[data-target]").forEach((statEl) => {
-    statEl.addEventListener("click", () => {
-      const targetId = statEl.dataset.target;
+  document.querySelectorAll(".stat[data-target], .chart-title[data-target]").forEach((el) => {
+    el.addEventListener("click", () => {
+      const targetId = el.dataset.target;
       const box = document.getElementById(targetId);
       if (!box) return;
-      const alreadyActive = statEl.classList.contains("active");
-      // 同じセクション(同じdata-target)内の他の項目のactive状態だけを解除する
-      document.querySelectorAll(`.stat[data-target="${targetId}"].active`)
-        .forEach((el) => el.classList.remove("active"));
+      const alreadyActive = el.classList.contains("active");
+      // 同じdata-targetを共有する項目のactive状態だけを解除する
+      document.querySelectorAll(`[data-target="${targetId}"].active`)
+        .forEach((other) => other.classList.remove("active"));
       if (alreadyActive) {
         box.hidden = true;
         box.textContent = "";
       } else {
-        box.textContent = statEl.dataset.note;
+        box.textContent = el.dataset.note;
         box.hidden = false;
-        statEl.classList.add("active");
+        el.classList.add("active");
       }
     });
   });

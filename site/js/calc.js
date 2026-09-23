@@ -33,7 +33,7 @@ export const DEFAULT_MOMENTUM_LOOKBACK = 7;
 // 損益分岐点となる勝率は50%よりかなり高くなるのが一般的。有利確率50%を
 // 「ほぼ最悪」の位置に置き、50%未満(=ITM方向の方が優勢)を最悪(最終段階)とする。
 const BADGE_PROB_THRESHOLDS = [0.95, 0.85, 0.75, 0.65, 0.55, 0.50];
-const BADGE_LABELS = {
+export const BADGE_LABELS = {
   sell: ["激熱", "熱", "好機", "可もなく不可もなく", "ひやひや", "ITM", "ピンチ"],
   buy:  ["激熱", "熱", "好機", "ITM", "OTM", "ピンチ", "大ピンチ"],
 };

@@ -139,6 +139,9 @@ button:disabled{opacity:.6;cursor:default}
 
 .chart{width:100%;height:auto;display:block}
 .chart-title{font-size:12px;color:var(--muted);margin:14px 0 4px}
+.chart-title[data-target]{cursor:pointer;display:inline-block}
+.chart-title[data-target]:hover{color:var(--accent);text-decoration:underline}
+.chart-title[data-target].active{color:var(--accent)}
 
 .momentum-strip{display:flex;gap:8px;flex-wrap:wrap}
 .momentum-cell{flex:1;min-width:64px;background:var(--field);border:1px solid var(--line);
@@ -150,19 +153,12 @@ button:disabled{opacity:.6;cursor:default}
 #todayCard[hidden]{display:none}
 #conditionCard[hidden]{display:none}
 
-/* エントリー日ごとのヒートマップ: 総合判定バッジ・詳細マトリクスと共通の7段階配色
-   (赤=有利〜紫=不利)。L0が最も有利、L6が最も不利。 */
+/* エントリー日ごとのヒートマップ: 判定期間内のITM日数(絶対値)を7段階配色で表す
+   (色はjs/heatmap.jsでインラインstyleとして付与) */
 .hm-grid{display:flex;flex-wrap:wrap;gap:2px;margin:8px 0}
 .hm-cell{width:11px;height:11px;border-radius:2px;cursor:default}
-.hm-cell.L0{background:var(--gradRed)}
-.hm-cell.L1{background:var(--gradOrange)}
-.hm-cell.L2{background:var(--gradYellow)}
-.hm-cell.L3{background:var(--line)}
-.hm-cell.L4{background:var(--gradLightBlue)}
-.hm-cell.L5{background:var(--gradBlue)}
-.hm-cell.L6{background:var(--gradPurple)}
 .hm-legend{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--muted);margin-top:6px;flex-wrap:wrap}
-.hm-legend .hm-cell{cursor:default}
+.hm-legend .hm-cell{cursor:default;flex:none}
 
 .disc{margin-top:20px;padding:12px;background:var(--wbg);border:1px solid var(--wbd);
   border-radius:8px;font-size:11.5px;color:var(--wfg)}
