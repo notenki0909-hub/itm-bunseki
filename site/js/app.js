@@ -643,7 +643,7 @@ function updateRiskRewardInputUI(typeKey, variant) {
   } else if (variant === "spread") {
     els.rrLossBasisLabel.textContent = "権利行使価格の差額(スプレッド幅)";
   } else {
-    els.rrLossBasisLabel.textContent = "権利行使価格";
+    els.rrLossBasisLabel.textContent = "株購入価格";
   }
 }
 
@@ -744,7 +744,7 @@ function renderRiskRewardBlock(summaryEl, warningEl, { group, infinite, winInfo,
   const maxLossNote = infinite
     ? "コール売り(単体)は株価に上限がないため、理論上損失は無限大になり得ます。"
     : group === "sell"
-      ? "損失額入力(権利行使価格またはスプレッド幅)から受取プレミアム額を差し引いた、満期までITMのまま保有した場合の最悪ケースの損失額です。"
+      ? "損失額入力(株購入価格またはスプレッド幅)から受取プレミアム額を差し引いた、満期までITMのまま保有した場合の最悪ケースの損失額です。"
       : "支払ったプレミアム額そのものが、このポジションの最大損失額です(それ以上の損失は発生しません)。";
   const totalNote = isBase
     ? "「分析結果」と同じ母集団(集計期間−判定期間)の件数です。"
