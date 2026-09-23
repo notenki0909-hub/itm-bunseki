@@ -462,11 +462,12 @@ function renderMainAnalysis(t) {
   els.overallProb.textContent = analysis.overallItmProb === null
     ? "―"
     : (analysis.overallItmProb * 100).toFixed(1) + "%";
-  els.chartWrap.innerHTML = renderDayProbChart(analysis.dayProb);
-  els.heatmapWrap.innerHTML = renderEntryHeatmap(analysis.perEntry, t.windowDays);
-  els.badgeLegend.innerHTML = renderBadgeLegend(typeGroup(t.typeKey));
-  els.dayProbLegend.innerHTML = renderColorLegend(DAY_PROB_BANDS);
-  els.entryHeatmapLegend.innerHTML = renderColorLegend(ENTRY_HEATMAP_BANDS);
+  const group = typeGroup(t.typeKey);
+  els.chartWrap.innerHTML = renderDayProbChart(analysis.dayProb, group);
+  els.heatmapWrap.innerHTML = renderEntryHeatmap(analysis.perEntry, t.windowDays, group);
+  els.badgeLegend.innerHTML = renderBadgeLegend(group);
+  els.dayProbLegend.innerHTML = renderColorLegend(DAY_PROB_BANDS[group]);
+  els.entryHeatmapLegend.innerHTML = renderColorLegend(ENTRY_HEATMAP_BANDS[group]);
   els.result.hidden = false;
 }
 
