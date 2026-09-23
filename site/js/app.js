@@ -567,10 +567,11 @@ function badgeLevelClass(level) {
   return level === null || level === undefined ? "b-neutral" : `b${level}`;
 }
 
-// 各.stat項目・グラフの見出しをクリックすると、対応するdata-target先(直後の
-// explain-box)に説明を表示する。同じ項目をもう一度クリックすると閉じる(トグル)。
+// 各.stat項目・グラフの見出し・フォーム項目のラベルをクリックすると、対応する
+// data-target先(直後のexplain-box)に説明を表示する。同じ項目をもう一度クリック
+// すると閉じる(トグル)。
 function setupStatExplain() {
-  document.querySelectorAll(".stat[data-target], .chart-title[data-target]").forEach((el) => {
+  document.querySelectorAll(".stat[data-target], .chart-title[data-target], .field label[data-target]").forEach((el) => {
     el.addEventListener("click", () => {
       const targetId = el.dataset.target;
       const box = document.getElementById(targetId);

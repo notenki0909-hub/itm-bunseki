@@ -94,8 +94,14 @@ h1{font-size:20px;margin:0 0 4px}
 .form-row{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end;margin-bottom:12px}
 .field{display:flex;flex-direction:column;gap:4px}
 .field label{font-size:12px;color:var(--muted)}
+.field label[data-target]{cursor:pointer;width:fit-content}
+.field label[data-target]:hover{color:var(--accent);text-decoration:underline}
+.field label[data-target].active{color:var(--accent);text-decoration:underline}
 .field input,.field select{padding:8px 10px;border:1px solid var(--line);border-radius:8px;
   font-size:14px;background:var(--field);color:var(--fg)}
+/* 使わない項目であることがひと目で分かるよう、無効化時ははっきり薄く・斜線調にする */
+.field input:disabled,.field select:disabled{background:repeating-linear-gradient(135deg,var(--line),var(--line) 4px,var(--field) 4px,var(--field) 9px);
+  color:var(--muted);opacity:.55;cursor:not-allowed;border-style:dashed}
 #ticker{width:140px;text-transform:uppercase}
 #ratioInput{width:90px}
 button{padding:9px 18px;border:1px solid var(--accent);border-radius:8px;

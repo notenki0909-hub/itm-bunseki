@@ -93,29 +93,38 @@
     <p class="sub" style="margin:0 0 10px"><b>判定基準：</b>上の「分析結果」と同じ権利行使価格の基準に加えて、<b>指定した値動き条件に当てはまった日だけ</b>に絞ってエントリーした場合を判定します（分析結果の対象日を、値動き条件でさらに絞り込んだものです）。</p>
     <div class="form-row">
       <div class="field">
-        <label for="conditionModeSelect">条件の種類</label>
+        <label for="conditionModeSelect" data-target="conditionExplain"
+          data-note="値動き条件の判定方法を選びます。「N営業日前と比較」は指定した1点だけを見る方式、「直近7営業日中の該当日数」は1〜7営業日前それぞれを見て、条件を満たす日数を数える方式です。">条件の種類</label>
         <select id="conditionModeSelect">
           <option value="lookback">N営業日前と比較</option>
           <option value="countWithin7">直近7営業日中の該当日数</option>
         </select>
       </div>
       <div class="field">
-        <label for="momentumLookbackSelect">比較営業日数</label>
-        <select id="momentumLookbackSelect"></select>
-      </div>
-      <div class="field">
-        <label for="minMatchDaysInput">該当日数(◯日以上)</label>
+        <label for="minMatchDaysInput" data-target="conditionExplain"
+          data-note="「直近7営業日中の該当日数」を選んだときに使います。1〜7営業日前のうち、変化率条件を満たす日が何日あればエントリー日とみなすかを指定します。「N営業日前と比較」を選んでいる間は使わないため入力できません。">該当日数(◯日以上)</label>
         <input id="minMatchDaysInput" type="number" step="1" min="1" max="7" value="3">
       </div>
+    </div>
+    <div class="form-row">
       <div class="field">
-        <label for="momentumDirectionSelect">方向</label>
+        <label for="momentumLookbackSelect" data-target="conditionExplain"
+          data-note="「N営業日前と比較」を選んだときに使います。何営業日前の株価と比較するかを指定します。「直近7営業日中の該当日数」を選んでいる間は使わないため入力できません。">比較営業日数</label>
+        <select id="momentumLookbackSelect"></select>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="field">
+        <label for="momentumDirectionSelect" data-target="conditionExplain"
+          data-note="株価が下落したときを対象にするか、上昇したときを対象にするかを選びます。">方向</label>
         <select id="momentumDirectionSelect">
           <option value="down">下落</option>
           <option value="up">上昇</option>
         </select>
       </div>
       <div class="field">
-        <label for="momentumThresholdInput">変化率(%以上)</label>
+        <label for="momentumThresholdInput" data-target="conditionExplain"
+          data-note="「方向」で選んだ向きに、指定した%以上変動した日を対象にします。">変化率(%以上)</label>
         <input id="momentumThresholdInput" type="number" step="0.5" min="0" value="5">
       </div>
     </div>
