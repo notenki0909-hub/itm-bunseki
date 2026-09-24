@@ -572,7 +572,7 @@ function renderMainAnalysis(t) {
   }, dates);
 
   els.symbolLabel.textContent = t.symbol;
-  els.resultTypeLabel.textContent = `：${type.label}`;
+  els.resultTypeLabel.textContent = `：${type.label}、×${t.ratio}`;
   els.badge.textContent = analysis.badge;
   els.badge.className = "badge " + badgeLevelClass(analysis.badgeLevel);
   els.entryCount.textContent = analysis.entryCount.toLocaleString("ja-JP");
