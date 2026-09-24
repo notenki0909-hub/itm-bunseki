@@ -11,7 +11,7 @@ import {
 import { renderDayProbChart, DAY_PROB_BANDS } from "./chart.js";
 import { renderEntryHeatmap, ENTRY_HEATMAP_BANDS } from "./heatmap.js";
 import { initThemeBar } from "./theme.js";
-import { addTickerToHistory, setupTickerHistoryDropdown } from "./tickerHistory.js";
+import { addTickerToHistory, setupTickerHistoryDropdown, loadTickerHistory, mergeTickerHistory } from "./tickerHistory.js";
 
 // 複数銘柄・複数タイプを切り替えながら見比べられるよう「タブ」単位で状態を持つ。
 // タブの切り替えは常にメモリ上のデータを出し直すだけで、APIへの再アクセスは発生しない。
@@ -118,14 +118,18 @@ function loadFromSavedState() {
   return true;
 }
 
+// 新形式は {tabs, tickerHistory} のオブジェクト。配列そのものだった旧形式の
+// 共有リンク(このセクション追加前に発行されたもの)も後方互換で読み込める。
 function parseShareParam() {
   try {
     const raw = new URLSearchParams(location.search).get("share");
     if (!raw) return null;
     // URLSearchParams.get() は自動でデコード済みなので、ここでさらに decodeURIComponent はしない
-    const recipes = JSON.parse(raw);
+    const parsed = JSON.parse(raw);
+    const recipes = Array.isArray(parsed) ? parsed : parsed.tabs;
+    const tickerHistory = Array.isArray(parsed) ? [] : parsed.tickerHistory;
     if (!Array.isArray(recipes) || recipes.length === 0) return null;
-    return recipes;
+    return { recipes, tickerHistory: Array.isArray(tickerHistory) ? tickerHistory : [] };
   } catch (e) {
     return null;
   }
@@ -162,10 +166,11 @@ async function loadFromShareRecipes(recipes) {
 
 function buildShareUrl() {
   const recipes = tabs.filter((t) => t.symbol).map(tabRecipe);
+  const payload = { tabs: recipes, tickerHistory: loadTickerHistory() };
   const url = new URL(location.href);
   url.search = "";
   // URLSearchParams.set() が自動でエンコードするので、ここで encodeURIComponent はしない
-  url.searchParams.set("share", JSON.stringify(recipes));
+  url.searchParams.set("share", JSON.stringify(payload));
   return url.toString();
 }
 
@@ -995,9 +1000,10 @@ function init() {
   setupStatExplain();
 
   // 復元の優先順位: URLの共有パラメータ > 同一端末の保存状態 > 新規タブ
-  const shareRecipes = parseShareParam();
-  if (shareRecipes) {
-    loadFromShareRecipes(shareRecipes);
+  const shareData = parseShareParam();
+  if (shareData) {
+    loadFromShareRecipes(shareData.recipes);
+    mergeTickerHistory(shareData.tickerHistory);
   } else if (!loadFromSavedState()) {
     createTab();
   }

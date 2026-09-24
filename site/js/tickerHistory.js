@@ -32,6 +32,23 @@ export function addTickerToHistory(symbol) {
   }
 }
 
+// 共有リンクなど、他所から受け取ったティッカー一覧を既存の履歴にマージする。
+// 既にある銘柄は順序を変えず、新規の銘柄だけを末尾に追加する(最大MAX_ENTRIES件)。
+export function mergeTickerHistory(incoming) {
+  if (!Array.isArray(incoming) || incoming.length === 0) return;
+  const merged = loadTickerHistory();
+  for (const raw of incoming) {
+    const s = (raw || "").trim().toUpperCase();
+    if (!s || merged.includes(s)) continue;
+    merged.push(s);
+  }
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(merged.slice(0, MAX_ENTRIES)));
+  } catch (e) {
+    // 保存できなくても致命的ではない
+  }
+}
+
 // ティッカー入力欄(inputEl)の下に、履歴を一覧表示するドロップダウン(dropdownEl)
 // を配線する。クリック/フォーカス時は入力値に関わらず常に全履歴を表示し、
 // 入力中はその文字列を含む候補だけに絞り込む。候補をクリックすると入力欄に
