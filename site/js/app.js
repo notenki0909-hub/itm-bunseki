@@ -781,8 +781,8 @@ function renderCutLossSection(t, { group, infinite, premiumForBreakEven, baseWin
     {
       label: "損益分岐勝率", value: neededText, sub: neededSub,
       note: group === "sell"
-        ? "損切額と予想利益(利確時)から、期待値がちょうどゼロになる勝率を算出したものです(p=損切額÷(予想利益+損切額))。実績の勝率(絞り込みなし/あり)は一切使っていません。"
-        : "損切額と見越し最大利益額から、期待値がちょうどゼロになる勝率を算出したものです(p=損切額÷(見越し最大利益額+損切額))。実績の勝率(絞り込みなし/あり)は一切使っていません。",
+        ? "損切額と予想利益(利確時)から、期待値がちょうどゼロになる勝率を算出したものです。\n(p=損切額÷(予想利益+損切額))\n実績の勝率(絞り込みなし/あり)は一切使っていません。"
+        : "損切額と見越し最大利益額から、期待値がちょうどゼロになる勝率を算出したものです。\n(p=損切額÷(見越し最大利益額+損切額))\n実績の勝率(絞り込みなし/あり)は一切使っていません。",
     },
     {
       label: baseVerdict.label, value: `<span class="badge ${baseVerdict.badge}">${baseVerdict.value}</span>`, isBadge: true,
@@ -873,17 +873,21 @@ function renderRiskRewardBlock(summaryEl, warningEl, { group, infinite, winInfo,
   if (group === "sell") {
     breakEvenLabel = "一回の損切における上限額";
     breakEvenValue = infinite ? null : breakEvenMaxLoss(premiumForBreakEven, winRate);
-    breakEvenNote = "勝率をもとに、勝ちトレードで得られる予想利益の合計と、負けトレードでの損失の合計がちょうど釣り合う「1回あたりの損失額」の上限です。例えば勝率84%なら、10回のトレードのうち平均8.4回勝って予想利益を得て、1.6回負けるとすると、8.4回分の予想利益の合計と1.6回分の損失の合計がちょうど釣り合う、1回あたりの損失額にあたります。実際の最大損失額がこの金額以下なら統計的に有利、上回っていれば不利です。この金額(または自分で決めた損切額)だけ損失を確定させたい場合、反対売買(買い戻し)の指値は「約定レート(受取プレミアム額)＋この金額」になります(例: 約定レートが1.2、損切りたい金額が2なら、指値は1.2+2=3.2)。";
+    breakEvenNote = "勝率をもとに、勝ちトレードで得られる予想利益の合計と、負けトレードでの損失の合計がちょうど釣り合う「1回あたりの損失額」の上限です。\n"
+      + "例えば勝率84%なら、10回のトレードのうち平均8.4回勝って予想利益を得て、1.6回負けるとすると、8.4回分の予想利益の合計と1.6回分の損失の合計がちょうど釣り合う、1回あたりの損失額にあたります。\n"
+      + "実際の最大損失額がこの金額以下なら統計的に有利、上回っていれば不利です。\n"
+      + "この金額(または自分で決めた損切額)だけ損失を確定させたい場合、反対売買(買い戻し)の指値は「約定レート(受取プレミアム額)＋この金額」になります。\n"
+      + "(例: 約定レートが1.2、損切りたい金額が2なら、指値は1.2+2=3.2)";
     if (infinite) {
       verdictHtml = `<span class="badge b6">損失無限大のため判定不可</span>`;
-      verdictNote = "コール売り(単体)は理論上、株価に上限がないため損失が無限大になり得ます。実際の最大損失額が確定できないため、損益分岐の判定はできません。";
+      verdictNote = "コール売り(単体)は理論上、株価に上限がないため損失が無限大になり得ます。\n実際の最大損失額が確定できないため、損益分岐の判定はできません。";
     } else if (breakEvenValue === null || actualMaxLoss === null) {
       verdictHtml = `<span class="badge b-neutral">入力待ち</span>`;
       verdictNote = "損失額入力・受取プレミアム額（必要なら利確割合も）を入力すると判定されます。";
     } else {
       const favorable = actualMaxLoss <= breakEvenValue;
       verdictHtml = `<span class="badge ${favorable ? "b0" : "b6"}">${favorable ? "統計的に有利" : "統計的に不利"}</span>`;
-      verdictNote = "実際の最大損失額と、左の「一回の損切における上限額」を比較した結果です。実際の最大損失額が上限額以下なら「統計的に有利」、上回っていれば「統計的に不利」です。";
+      verdictNote = "実際の最大損失額と、左の「一回の損切における上限額」を比較した結果です。\n実際の最大損失額が上限額以下なら「統計的に有利」、上回っていれば「統計的に不利」です。";
     }
     if (!infinite && winRate !== null) {
       lossRateSub = `敗率は${((1 - winRate) * 100).toFixed(1)}%まで`;
@@ -893,13 +897,13 @@ function renderRiskRewardBlock(summaryEl, warningEl, { group, infinite, winInfo,
     breakEvenValue = breakEvenMinGain(premiumForBreakEven, winRate);
     breakEvenNote = "支払ったプレミアム額と勝率から、損益分岐点となる「勝ったときに最低限必要な利益額」の目安を算出したものです（支払いプレミアム×(1−勝率)÷勝率）。";
     verdictHtml = `<span class="badge b-neutral">参考値（実際の利益額とご自身で比較してください）</span>`;
-    verdictNote = "買い系は損失が支払いプレミアムに固定される一方、勝ったときの利益額は銘柄の値動き次第で変動し、このツールでは追跡していません。そのため有利/不利の自動判定は行わず、左の金額を参考値として表示しています。";
+    verdictNote = "買い系は損失が支払いプレミアムに固定される一方、勝ったときの利益額は銘柄の値動き次第で変動し、このツールでは追跡していません。\nそのため有利/不利の自動判定は行わず、左の金額を参考値として表示しています。";
   }
 
   const winRateLabel = group === "sell" ? "勝率(負けない確率)" : "勝率(ITMを勝ちとした確率)";
   const winRateNote = group === "sell"
-    ? "判定期間内のITM日数がしきい値未満だった(負けなかった)エントリー日の割合です。売りはITMが少ないほど有利なため「負けない確率」と表現しています。"
-    : "判定期間内のITM日数がしきい値以上だった(勝った)エントリー日の割合です。買いはITMが多いほど有利なため「ITMを勝ちとした確率」と表現しています。";
+    ? "判定期間内のITM日数がしきい値未満だった(負けなかった)エントリー日の割合です。\n売りはITMが少ないほど有利なため「負けない確率」と表現しています。"
+    : "判定期間内のITM日数がしきい値以上だった(勝った)エントリー日の割合です。\n買いはITMが多いほど有利なため「ITMを勝ちとした確率」と表現しています。";
   const winRateSub = isBase ? "いつエントリーしてもこの勝率" : null;
   const maxLossNote = infinite
     ? "コール売り(単体)は株価に上限がないため、理論上損失は無限大になり得ます。"
@@ -908,7 +912,7 @@ function renderRiskRewardBlock(summaryEl, warningEl, { group, infinite, winInfo,
       : "支払ったプレミアム額そのものが、このポジションの最大損失額です(それ以上の損失は発生しません)。";
   const totalNote = isBase
     ? "「分析結果」と同じ母集団(集計期間−判定期間)の件数です。"
-    : "「エントリー条件で絞り込み」で指定した値動き条件に当てはまった日数(該当日数)です。絞り込み後の件数を分母にすることで、実際にエントリーする場面だけに絞った勝率になります。";
+    : "「エントリー条件で絞り込み」で指定した値動き条件に当てはまった日数(該当日数)です。\n絞り込み後の件数を分母にすることで、実際にエントリーする場面だけに絞った勝率になります。";
 
   const items = [
     { label: "母数(件数)", value: total.toLocaleString("ja-JP"), note: totalNote },
@@ -919,7 +923,7 @@ function renderRiskRewardBlock(summaryEl, warningEl, { group, infinite, winInfo,
     const profitText = premiumForBreakEven === null ? "―" : premiumForBreakEven.toFixed(2);
     items.push({
       label: "予想利益(利確時)", value: profitText,
-      note: "受取プレミアム額×利確割合。反対売買(買い戻し)で決済する際、買い戻しコストを差し引いて実際に手元に残る利益の見込み額です(利確割合が未入力の場合は受取プレミアム額そのもの＝100%として計算しています)。",
+      note: "受取プレミアム額×利確割合。\n反対売買(買い戻し)で決済する際、買い戻しコストを差し引いて実際に手元に残る利益の見込み額です。\n(利確割合が未入力の場合は受取プレミアム額そのもの＝100%として計算しています)",
     });
   }
   items.push({

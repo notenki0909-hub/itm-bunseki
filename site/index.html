@@ -48,7 +48,8 @@
         <b id="todayDate">―</b><span>集計期間の営業日日数</span><span class="stat-sub" id="todayRange"></span></div>
       <div class="stat" data-target="todayExplain" data-note="取得できた最新営業日の終値です。">
         <b id="todayClose">―</b><span>終値</span><span class="stat-sub" id="todayCloseDate"></span></div>
-      <div class="stat" data-target="todayExplain" data-note="終値 × 権利行使価格の比率。今エントリーする場合の権利行使価格の目安です。">
+      <div class="stat" data-target="todayExplain" data-note="終値 × 権利行使価格の比率。
+今エントリーする場合の権利行使価格の目安です。">
         <b id="todayStrike">―</b><span>現在の比率での権利行使価格</span></div>
     </div>
     <div class="chart-title">過去N営業日比較（本日が何%変動したか）</div>
@@ -60,27 +61,35 @@
     <h2 style="margin:0 0 10px;font-size:16px"><span id="symbolLabel"></span> の分析結果</h2>
     <p class="sub" style="margin:0 0 10px"><b>判定基準：</b>権利行使価格（各エントリー日の終値 × 比率）だけを基準に、集計期間内の<b>全エントリー日</b>でITMになったかを判定します。</p>
     <div class="summary">
-      <div class="stat" data-target="resultExplain" data-note="集計期間の営業日日数から、判定期間の分を差し引いた日数です。この日数分が、実際に計算できる「取引開始日」の件数になります。">
+      <div class="stat" data-target="resultExplain" data-note="集計期間の営業日日数から、判定期間の分を差し引いた日数です。
+この日数分が、実際に計算できる「取引開始日」の件数になります。">
         <b id="entryCount">―</b><span>集計期間の営業日日数（判定期間分マイナス）</span></div>
-      <div class="stat" data-target="resultExplain" data-note="判定件数のうち、判定期間内に1日でもITMになった「取引開始日」の実数です。ITMが良い結果か悪い結果かは取引タイプにより異なります。">
+      <div class="stat" data-target="resultExplain" data-note="判定件数のうち、判定期間内に1日でもITMになった「取引開始日」の実数です。
+ITMが良い結果か悪い結果かは取引タイプにより異なります。">
         <b id="itmCount">―</b><span>ITM発生エントリー数</span></div>
-      <div class="stat" data-target="resultExplain" data-note="全エントリー日について、判定期間内でITMだった日数を合計したものです。下のヒートマップの色の濃淡（セルごとのITM日数）の総和にあたります。1つのエントリーが何日もITMのままだと大きくなるため、ITM発生エントリー数とは異なる指標です。">
+      <div class="stat" data-target="resultExplain" data-note="全エントリー日について、判定期間内でITMだった日数を合計したものです。
+下のヒートマップの色の濃淡（セルごとのITM日数）の総和にあたります。
+1つのエントリーが何日もITMのままだと大きくなるため、ITM発生エントリー数とは異なる指標です。">
         <b id="totalItmDays">―</b><span>ITM発生延べ日数</span></div>
-      <div class="stat" data-target="resultExplain" data-note="ITM発生エントリー数 ÷ 判定件数。売り(プット売/コール売)は低いほど、買い(コール買/プット買)は高いほど有利です。">
+      <div class="stat" data-target="resultExplain" data-note="ITM発生エントリー数 ÷ 判定件数。
+売り(プット売/コール売)は低いほど、買い(コール買/プット買)は高いほど有利です。">
         <b id="overallProb">―</b><span>ITM発生エントリー数の割合</span></div>
-      <div class="stat" data-target="resultExplain" data-note="ITM発生エントリー数の割合を、そのタイプにとって有利な方向の確率に変換して7段階評価したものです。赤に近いほど有利、紫に近いほど不利を表します（詳細マトリクスと共通の配色です）。">
+      <div class="stat" data-target="resultExplain" data-note="ITM発生エントリー数の割合を、そのタイプにとって有利な方向の確率に変換して7段階評価したものです。
+赤に近いほど有利、紫に近いほど不利を表します（詳細マトリクスと共通の配色です）。">
         <span class="badge" id="badge">―</span><br><span>総合判定</span></div>
     </div>
     <div class="hm-legend" id="badgeLegend"></div>
 
     <div class="chart-title" id="dayProbTitle" data-target="dayProbExplain"
-      data-note="各営業日について、それまでのエントリー日のうち何%がその日までにITMになっていたかを示します。バーの色はその日のITM率（絶対値）を6段階で表したもので、有利/不利の向きとは連動していません。">過去の営業日ごとのITM確率</div>
+      data-note="各営業日について、それまでのエントリー日のうち何%がその日までにITMになっていたかを示します。
+バーの色はその日のITM率（絶対値）を6段階で表したもので、有利/不利の向きとは連動していません。">過去の営業日ごとのITM確率</div>
     <div id="dayProbExplain" class="explain-box" hidden></div>
     <div id="chartWrap"></div>
     <div class="hm-legend" id="dayProbLegend"></div>
 
     <div class="chart-title" id="entryHeatmapTitle" data-target="entryHeatmapExplain"
-      data-note="集計期間内の取引開始日を1マスずつ時系列に並べ、その日から判定期間内でITMだった日数を色で表したものです。色は日数（絶対値）を7段階で表したもので、有利/不利の向きとは連動していません。">エントリー日ごとのITM状況（マウスを乗せると日付を表示）</div>
+      data-note="集計期間内の取引開始日を1マスずつ時系列に並べ、その日から判定期間内でITMだった日数を色で表したものです。
+色は日数（絶対値）を7段階で表したもので、有利/不利の向きとは連動していません。">エントリー日ごとのITM状況（マウスを乗せると日付を表示）</div>
     <div id="entryHeatmapExplain" class="explain-box" hidden></div>
     <div id="heatmapWrap"></div>
     <div class="hm-legend" id="entryHeatmapLegend"></div>
@@ -95,7 +104,8 @@
     <div class="form-row">
       <div class="field">
         <label for="conditionModeSelect" data-target="conditionExplain"
-          data-note="値動き条件の判定方法を選びます。「N営業日前と比較」は指定した1点だけを見る方式、「直近7営業日中の該当日数」は1〜7営業日前それぞれを見て、条件を満たす日数を数える方式です。">条件の種類</label>
+          data-note="値動き条件の判定方法を選びます。
+「N営業日前と比較」は指定した1点だけを見る方式、「直近7営業日中の該当日数」は1〜7営業日前それぞれを見て、条件を満たす日数を数える方式です。">条件の種類</label>
         <select id="conditionModeSelect">
           <option value="lookback">N営業日前と比較</option>
           <option value="countWithin7">直近7営業日中の該当日数</option>
@@ -103,14 +113,18 @@
       </div>
       <div class="field">
         <label for="minMatchDaysInput" data-target="conditionExplain"
-          data-note="「直近7営業日中の該当日数」を選んだときに使います。1〜7営業日前のうち、変化率条件を満たす日が何日あればエントリー日とみなすかを指定します。「N営業日前と比較」を選んでいる間は使わないため入力できません。">該当日数(◯日以上)</label>
+          data-note="「直近7営業日中の該当日数」を選んだときに使います。
+1〜7営業日前のうち、変化率条件を満たす日が何日あればエントリー日とみなすかを指定します。
+「N営業日前と比較」を選んでいる間は使わないため入力できません。">該当日数(◯日以上)</label>
         <input id="minMatchDaysInput" type="number" step="1" min="1" max="7" value="3">
       </div>
     </div>
     <div class="form-row">
       <div class="field">
         <label for="momentumLookbackSelect" data-target="conditionExplain"
-          data-note="「N営業日前と比較」を選んだときに使います。何営業日前の株価と比較するかを指定します。「直近7営業日中の該当日数」を選んでいる間は使わないため入力できません。">比較営業日数</label>
+          data-note="「N営業日前と比較」を選んだときに使います。
+何営業日前の株価と比較するかを指定します。
+「直近7営業日中の該当日数」を選んでいる間は使わないため入力できません。">比較営業日数</label>
         <select id="momentumLookbackSelect"></select>
       </div>
     </div>
@@ -135,9 +149,11 @@
         <b id="matchedCount">―</b><span>該当日数</span></div>
       <div class="stat" data-target="conditionExplain" data-note="該当日数のうち、判定期間内に1日でもITMになった日の実数です。">
         <b id="matchedItmCount">―</b><span>ITM発生エントリー数</span></div>
-      <div class="stat" data-target="conditionExplain" data-note="該当日について、判定期間内でITMだった日数を合計したものです。1つのエントリーが何日もITMのままだと大きくなるため、ITM発生エントリー数とは異なる指標です。">
+      <div class="stat" data-target="conditionExplain" data-note="該当日について、判定期間内でITMだった日数を合計したものです。
+1つのエントリーが何日もITMのままだと大きくなるため、ITM発生エントリー数とは異なる指標です。">
         <b id="matchedTotalItmDays">―</b><span>ITM発生延べ日数</span></div>
-      <div class="stat" data-target="conditionExplain" data-note="ITM発生エントリー数 ÷ 該当日数。条件に当てはまった日だけで見た割合です。">
+      <div class="stat" data-target="conditionExplain" data-note="ITM発生エントリー数 ÷ 該当日数。
+条件に当てはまった日だけで見た割合です。">
         <b id="matchedProb">―</b><span>ITM発生エントリー数の割合</span></div>
       <div class="stat" data-target="conditionExplain" data-note="今の値動きが、上で指定した条件に当てはまるかどうかです。">
         <span class="badge" id="todayMatchBadge">―</span><br><span>本日はこの条件に</span></div>
@@ -154,32 +170,40 @@
     <div class="form-row">
       <div class="field">
         <label for="rrVariantSelect" data-target="riskRewardExplain"
-          data-note="上の「取引タイプ」に対応する、単体とスプレッドの2種類から選べます（例: プット売なら「プット売り」または「ブルプット」）。">取引の種類</label>
+          data-note="上の「取引タイプ」に対応する、単体とスプレッドの2種類から選べます。
+（例: プット売なら「プット売り」または「ブルプット」）">取引の種類</label>
         <select id="rrVariantSelect"></select>
       </div>
       <div class="field">
         <label for="rrThresholdInput" data-target="riskRewardExplain"
-          data-note="判定期間内のITM日数がこの日数以上のエントリー日を、売りは「負け」、買いは「勝ち」として勝率を計算します（ITMは買い手に有利、売り手に不利なため）。判定期間の長さに関わらず、絶対日数として扱います。">ITM日数のしきい値(◯日以上)</label>
+          data-note="判定期間内のITM日数がこの日数以上のエントリー日を、売りは「負け」、買いは「勝ち」として勝率を計算します。
+（ITMは買い手に有利、売り手に不利なため）
+判定期間の長さに関わらず、絶対日数として扱います。">ITM日数のしきい値(◯日以上)</label>
         <input id="rrThresholdInput" type="number" step="1" min="1" max="150" value="4">
       </div>
     </div>
     <div class="form-row">
       <div class="field">
         <label for="rrLossBasisInput" data-target="riskRewardExplain"
-          data-note="プット売り(単体)なら株購入価格(権利行使価格)、スプレッドなら2つの権利行使価格の差額（スプレッド幅）、単体買い/デビットスプレッドなら支払いプレミアム額を入力します。コール売り(単体)は損失が無限大のため使いません。">
+          data-note="プット売り(単体)なら株購入価格(権利行使価格)、スプレッドなら2つの権利行使価格の差額（スプレッド幅）、単体買い/デビットスプレッドなら支払いプレミアム額を入力します。
+コール売り(単体)は損失が無限大のため使いません。">
           <span id="rrLossBasisLabel">株購入価格</span></label>
         <input id="rrLossBasisInput" type="number" step="0.01" min="0" placeholder="例: 45.00">
       </div>
       <div class="field">
         <label for="rrPremiumInput" data-target="riskRewardExplain"
-          data-note="オプションの売り手として受け取るプレミアム額（合計）です。買い系を選んでいる間は使わないため入力できません。">受取プレミアム額</label>
+          data-note="オプションの売り手として受け取るプレミアム額（合計）です。
+買い系を選んでいる間は使わないため入力できません。">受取プレミアム額</label>
         <input id="rrPremiumInput" type="number" step="0.01" min="0" placeholder="例: 1.20">
       </div>
     </div>
     <div class="form-row">
       <div class="field">
         <label for="rrProfitRatioInput" data-target="riskRewardExplain"
-          data-note="反対売買（買い戻し）で決済する場合、買い戻しにも費用がかかるため、実際に手元に残る利益は受取プレミアムの一部にとどまります。受け取ったプレミアムのうち何%を利益として確定させるかを入力してください（未入力の場合は100%＝満期まで保有して受取プレミアムを丸々得たものとして計算します）。買い系を選んでいる間は使わないため入力できません。">利確割合(%)</label>
+          data-note="反対売買（買い戻し）で決済する場合、買い戻しにも費用がかかるため、実際に手元に残る利益は受取プレミアムの一部にとどまります。
+受け取ったプレミアムのうち何%を利益として確定させるかを入力してください。
+（未入力の場合は100%＝満期まで保有して受取プレミアムを丸々得たものとして計算します）
+買い系を選んでいる間は使わないため入力できません。">利確割合(%)</label>
         <input id="rrProfitRatioInput" type="number" step="1" min="0" max="100" placeholder="未入力=100%">
       </div>
     </div>
@@ -198,18 +222,27 @@
     <div class="form-row">
       <div class="field" id="rrSpreadWidthField" hidden>
         <label for="rrSpreadWidthInput" data-target="riskRewardExplain"
-          data-note="ブルコール/ベアプットの権利行使価格の差額(スプレッド幅)です。見越し最大利益額の理論上の上限(スプレッド幅−支払いプレミアム額)を計算するためだけに使用します。実際の最大損失額(＝支払いプレミアム額)の計算には影響しません。">権利行使価格の差額(スプレッド幅)</label>
+          data-note="ブルコール/ベアプットの権利行使価格の差額(スプレッド幅)です。
+見越し最大利益額の理論上の上限(スプレッド幅−支払いプレミアム額)を計算するためだけに使用します。
+実際の最大損失額(＝支払いプレミアム額)の計算には影響しません。">権利行使価格の差額(スプレッド幅)</label>
         <input id="rrSpreadWidthInput" type="number" step="0.01" min="0" placeholder="例: 10.00">
       </div>
       <div class="field" id="rrExpectedGainField" hidden>
         <label for="rrExpectedGainInput" data-target="riskRewardExplain"
-          data-note="このトレードで見込んでいる最大利益額を入力します。買い系は利益額が変動し追跡していないため、ご自身の見込みを入力してください。単体買いは上限なし、スプレッド買いはスプレッド幅−支払いプレミアム額が理論上の上限です（超える入力をした場合、欄から離れると自動的に上限値に調整されます）。">見越し最大利益額</label>
+          data-note="このトレードで見込んでいる最大利益額を入力します。
+買い系は利益額が変動し追跡していないため、ご自身の見込みを入力してください。
+単体買いは上限なし、スプレッド買いはスプレッド幅−支払いプレミアム額が理論上の上限です。
+（超える入力をした場合、欄から離れると自動的に上限値に調整されます）">見越し最大利益額</label>
         <input id="rrExpectedGainInput" type="number" step="0.01" min="0" placeholder="例: 8.00">
         <span class="field-warn" id="rrExpectedGainWarning" hidden></span>
       </div>
       <div class="field">
         <label for="rrCutLossInput" data-target="riskRewardExplain"
-          data-note="実際に損切りするつもりの金額を入力します。売り系は実際の最大損失額（コール売り単体は上限なし）、買い系は支払いプレミアム額までの範囲で設定してください（超える入力をした場合、欄から離れると自動的に上限値に調整されます）。反対売買で実際に入れる指値は、売り系なら「約定レート（受取プレミアム額）＋損切額」、買い系なら「約定レート（支払いプレミアム額）－損切額」になります（例: 売り系で約定レートが1.2、損切額が2なら指値は3.2）。">損切額</label>
+          data-note="実際に損切りするつもりの金額を入力します。
+売り系は実際の最大損失額（コール売り単体は上限なし）、買い系は支払いプレミアム額までの範囲で設定してください。
+（超える入力をした場合、欄から離れると自動的に上限値に調整されます）
+反対売買で実際に入れる指値は、売り系なら「約定レート（受取プレミアム額）＋損切額」、買い系なら「約定レート（支払いプレミアム額）－損切額」になります。
+（例: 売り系で約定レートが1.2、損切額が2なら指値は3.2）">損切額</label>
         <input id="rrCutLossInput" type="number" step="0.01" min="0" placeholder="例: 3.00">
         <span class="field-warn" id="rrCutLossWarning" hidden></span>
       </div>
