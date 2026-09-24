@@ -209,7 +209,7 @@
       </div>
       <div class="field">
         <label for="rrCutLossInput" data-target="riskRewardExplain"
-          data-note="実際に損切りするつもりの金額を入力します。売り系は実際の最大損失額（コール売り単体は上限なし）、買い系は支払いプレミアム額までの範囲で設定してください（超える入力をした場合、欄から離れると自動的に上限値に調整されます）。">損切額</label>
+          data-note="実際に損切りするつもりの金額を入力します。売り系は実際の最大損失額（コール売り単体は上限なし）、買い系は支払いプレミアム額までの範囲で設定してください（超える入力をした場合、欄から離れると自動的に上限値に調整されます）。反対売買で実際に入れる指値は、売り系なら「約定レート（受取プレミアム額）＋損切額」、買い系なら「約定レート（支払いプレミアム額）－損切額」になります（例: 売り系で約定レートが1.2、損切額が2なら指値は3.2）。">損切額</label>
         <input id="rrCutLossInput" type="number" step="0.01" min="0" placeholder="例: 3.00">
         <span class="field-warn" id="rrCutLossWarning" hidden></span>
       </div>
