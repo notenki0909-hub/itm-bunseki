@@ -233,6 +233,7 @@ const els = {
   chartWrap: document.getElementById("chartWrap"),
   heatmapWrap: document.getElementById("heatmapWrap"),
   symbolLabel: document.getElementById("symbolLabel"),
+  resultTypeLabel: document.getElementById("resultTypeLabel"),
   badgeLegend: document.getElementById("badgeLegend"),
   dayProbLegend: document.getElementById("dayProbLegend"),
   entryHeatmapLegend: document.getElementById("entryHeatmapLegend"),
@@ -571,6 +572,7 @@ function renderMainAnalysis(t) {
   }, dates);
 
   els.symbolLabel.textContent = t.symbol;
+  els.resultTypeLabel.textContent = `：${type.label}`;
   els.badge.textContent = analysis.badge;
   els.badge.className = "badge " + badgeLevelClass(analysis.badgeLevel);
   els.entryCount.textContent = analysis.entryCount.toLocaleString("ja-JP");
