@@ -10,6 +10,7 @@ import {
 import { renderDayProbChart, DAY_PROB_BANDS } from "./chart.js";
 import { renderEntryHeatmap, ENTRY_HEATMAP_BANDS } from "./heatmap.js";
 import { initThemeBar } from "./theme.js";
+import { addTickerToHistory, renderTickerDatalist } from "./tickerHistory.js";
 
 // 複数銘柄・複数タイプを切り替えながら見比べられるよう「タブ」単位で状態を持つ。
 // タブの切り替えは常にメモリ上のデータを出し直すだけで、APIへの再アクセスは発生しない。
@@ -195,6 +196,7 @@ const els = {
   shareBtn: document.getElementById("shareBtn"),
   openDetailBtn: document.getElementById("openDetailBtn"),
   ticker: document.getElementById("ticker"),
+  tickerHistoryList: document.getElementById("tickerHistoryList"),
   analyzeBtn: document.getElementById("analyzeBtn"),
   typeSelect: document.getElementById("typeSelect"),
   ratioInput: document.getElementById("ratioInput"),
@@ -432,6 +434,8 @@ async function onAnalyze() {
     t.closesFull = data.closes;
     t.datesFull = data.dates;
     setStatus(`${data.symbol} の${data.closes.length}日分の終値を取得しました`);
+    addTickerToHistory(data.symbol);
+    renderTickerDatalist(els.tickerHistoryList);
     renderAll(t);
     renderTabBar();
     persistState();
@@ -829,6 +833,7 @@ function init() {
   initWindowOptions();
   initPeriodOptions();
   initMomentumLookbackOptions();
+  renderTickerDatalist(els.tickerHistoryList);
   setupStatExplain();
 
   // 復元の優先順位: URLの共有パラメータ > 同一端末の保存状態 > 新規タブ
