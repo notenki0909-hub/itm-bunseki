@@ -132,8 +132,10 @@ button:disabled{opacity:.6;cursor:default}
 
 /* 項目クリックで表示される説明。対応するカードの直前(上)に表示される */
 .explain-box{background:var(--info,var(--field));border:1px solid var(--accent);border-radius:8px;
-  padding:10px 12px;margin-bottom:10px;font-size:12px;color:var(--fg);line-height:1.6;white-space:pre-line}
-.explain-box[hidden]{display:none}
+  padding:10px 12px;margin:6px 0 10px;font-size:12px;color:var(--fg);line-height:1.6;white-space:pre-line}
+/* .summary/.form-rowはflex-wrapなので、クリックした項目の直後に挿入した説明欄を
+   常に1行全幅で折り返させ、他の項目の下に押し出さないようにする */
+.summary .explain-box,.form-row .explain-box{flex:1 1 100%}
 
 .badge{display:inline-block;padding:3px 12px;border-radius:14px;font-size:13px;font-weight:700}
 .b-good{background:color-mix(in srgb,var(--gA) 18%,transparent);color:var(--gA)}

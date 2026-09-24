@@ -958,31 +958,29 @@ function badgeLevelClass(level) {
   return level === null || level === undefined ? "b-neutral" : `b${level}`;
 }
 
-// 各.stat項目・グラフの見出し・フォーム項目のラベルをクリックすると、対応する
-// data-target先(直後のexplain-box)に説明を表示する。同じ項目をもう一度クリック
-// すると閉じる(トグル)。リスクリワード分析の.stat項目は再描画のたびにDOMごと
+// 各.stat項目・グラフの見出し・フォーム項目のラベルをクリックすると、その項目の
+// すぐ下に説明欄を挿入する(フォーム項目はラベルの下ではなく.field全体の下)。
+// もう一度クリックすると閉じる(トグル)。各項目は独立してON/OFFでき、他の項目を
+// クリックしても閉じない。リスクリワード分析の.stat項目は再描画のたびにDOMごと
 // 作り直されるため、この関数は再描画後にも呼び直される。既に配線済みの要素
 // (静的な項目)に二重で登録しないよう、配線済みフラグで判定する。
 function setupStatExplain() {
-  document.querySelectorAll(".stat[data-target], .chart-title[data-target], .field label[data-target]").forEach((el) => {
+  document.querySelectorAll(".stat[data-note], .chart-title[data-note], .field label[data-note]").forEach((el) => {
     if (el.dataset.explainWired) return;
     el.dataset.explainWired = "1";
     el.addEventListener("click", () => {
-      const targetId = el.dataset.target;
-      const box = document.getElementById(targetId);
-      if (!box) return;
-      const alreadyActive = el.classList.contains("active");
-      // 同じdata-targetを共有する項目のactive状態だけを解除する
-      document.querySelectorAll(`[data-target="${targetId}"].active`)
-        .forEach((other) => other.classList.remove("active"));
-      if (alreadyActive) {
-        box.hidden = true;
-        box.textContent = "";
-      } else {
-        box.textContent = el.dataset.note;
-        box.hidden = false;
-        el.classList.add("active");
+      const anchor = el.closest(".field") || el;
+      if (el.classList.contains("active")) {
+        el.classList.remove("active");
+        const box = anchor.nextElementSibling;
+        if (box && box.classList.contains("explain-box")) box.remove();
+        return;
       }
+      el.classList.add("active");
+      const box = document.createElement("div");
+      box.className = "explain-box";
+      box.textContent = el.dataset.note;
+      anchor.insertAdjacentElement("afterend", box);
     });
   });
 }
