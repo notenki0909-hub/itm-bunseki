@@ -32,21 +32,28 @@ export const DEFAULT_MOMENTUM_LOOKBACK = 7;
 // オプション売りは「利益は限定的・損失は相対的に大きい」非対称な構造のため、
 // 損益分岐点となる勝率は50%よりかなり高くなるのが一般的。有利確率50%を
 // 「ほぼ最悪」の位置に置き、50%未満(=ITM方向の方が優勢)を最悪(最終段階)とする。
-const BADGE_PROB_THRESHOLDS = [0.95, 0.85, 0.75, 0.65, 0.55, 0.50];
+// 売り系は「勝率は最低85%は欲しい」というユーザー基準に合わせ、買い系より
+// 厳しめのしきい値を使う(85%未満はもう「熱」ではなく「可もなく不可もなく」)。
+const BADGE_PROB_THRESHOLDS = {
+  sell: [0.95, 0.85, 0.80, 0.70, 0.60, 0.50],
+  buy:  [0.95, 0.85, 0.75, 0.65, 0.55, 0.50],
+};
 export const BADGE_LABELS = {
-  sell: ["激熱", "熱", "好機", "可もなく不可もなく", "ひやひや", "ITM", "ピンチ"],
+  sell: ["激熱", "熱", "可もなく不可もなく", "ひやひや", "ITM", "ピンチ", "大ピンチ"],
   buy:  ["激熱", "熱", "好機", "ITM", "OTM", "ピンチ", "大ピンチ"],
 };
 
-// 「有利方向への確率」を0(最も有利)〜6(最も不利)の7段階に変換する。
-// 総合判定バッジだけでなく、営業日ごとのITM確率チャートやエントリー日ごとの
-// ヒートマップも、この同じ関数・しきい値・7段階配色(詳細マトリクスと共通)を使う。
-export function favorableProbToLevel(favorableProb) {
+// 「有利方向への確率」を0(最も有利)〜6(最も不利)の7段階に変換する。総合判定
+// バッジが使う(営業日ごとのITM確率チャート・エントリー日ごとのヒートマップは、
+// 別のしきい値(絶対値ベース)を使っており、この関数とは独立している)。
+// 売り/買いでしきい値が異なるため、groupを指定する(省略時はsell扱い)。
+export function favorableProbToLevel(favorableProb, group) {
   if (favorableProb === null || favorableProb === undefined || Number.isNaN(favorableProb)) return null;
-  for (let i = 0; i < BADGE_PROB_THRESHOLDS.length; i++) {
-    if (favorableProb >= BADGE_PROB_THRESHOLDS[i]) return i;
+  const thresholds = BADGE_PROB_THRESHOLDS[group] || BADGE_PROB_THRESHOLDS.sell;
+  for (let i = 0; i < thresholds.length; i++) {
+    if (favorableProb >= thresholds[i]) return i;
   }
-  return BADGE_PROB_THRESHOLDS.length; // 6 = 最下段(ピンチ/大ピンチ)
+  return thresholds.length; // 6 = 最下段(ピンチ/大ピンチ)
 }
 
 /**
@@ -122,7 +129,7 @@ function classifyBadge(overallItmProb, group) {
   // 買い(buy)はITM確率が高いほど有利、売り(sell)はITM確率が低いほど有利なので
   // 「有利方向への確率」に揃えてからしきい値判定する。
   const favorableProb = group === "sell" ? 1 - overallItmProb : overallItmProb;
-  const level = favorableProbToLevel(favorableProb);
+  const level = favorableProbToLevel(favorableProb, group);
   return { label: labels[level], level };
 }
 
