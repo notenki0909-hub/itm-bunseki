@@ -4,7 +4,7 @@ import {
   DETAIL_BEFORE_DAYS, DETAIL_ITM_REF_DAYS, computeDetailMatrix,
 } from "./calc.js";
 import { initThemeBar } from "./theme.js";
-import { addTickerToHistory, renderTickerDatalist } from "./tickerHistory.js";
+import { addTickerToHistory, setupTickerHistoryDropdown } from "./tickerHistory.js";
 
 const HANDOFF_KEY = "itm-detail-handoff";
 // 31日後以降を初期状態で折りたたむ境界。元Excelに列数の上限はないが、判定期間を
@@ -29,7 +29,7 @@ const state = {
 
 const els = {
   ticker: document.getElementById("ticker"),
-  tickerHistoryList: document.getElementById("tickerHistoryList"),
+  tickerHistoryDropdown: document.getElementById("tickerHistoryDropdown"),
   typeSelect: document.getElementById("typeSelect"),
   ratioInput: document.getElementById("ratioInput"),
   windowSelect: document.getElementById("windowSelect"),
@@ -224,7 +224,6 @@ async function onAnalyze() {
     state.datesFull = data.dates;
     setStatus(`${data.symbol} の${data.closes.length}日分の終値を取得しました`);
     addTickerToHistory(data.symbol);
-    renderTickerDatalist(els.tickerHistoryList);
     render();
   } catch (e) {
     setStatus(`取得に失敗しました: ${e.message}`, true);
@@ -290,7 +289,7 @@ async function init() {
   initTypeOptions();
   initWindowOptions();
   initPeriodOptions();
-  renderTickerDatalist(els.tickerHistoryList);
+  setupTickerHistoryDropdown(els.ticker, els.tickerHistoryDropdown);
 
   let handoff = null;
   try {

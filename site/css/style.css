@@ -103,6 +103,13 @@ h1{font-size:20px;margin:0 0 4px}
 .field input:disabled,.field select:disabled{background:repeating-linear-gradient(135deg,var(--line),var(--line) 4px,var(--field) 4px,var(--field) 9px);
   color:var(--muted);opacity:.55;cursor:not-allowed;border-style:dashed}
 #ticker{width:140px;text-transform:uppercase}
+.ticker-wrap{position:relative}
+.ticker-dropdown{position:absolute;top:calc(100% + 4px);left:0;min-width:140px;max-height:220px;
+  overflow-y:auto;background:var(--card);border:1px solid var(--line);border-radius:8px;
+  box-shadow:0 6px 20px rgba(0,0,0,.35);z-index:20}
+.ticker-dropdown[hidden]{display:none}
+.ticker-dropdown-item{padding:8px 12px;font-size:14px;cursor:pointer;text-transform:uppercase}
+.ticker-dropdown-item:hover{background:var(--field);color:var(--accent)}
 #ratioInput{width:90px}
 #minMatchDaysInput,#momentumThresholdInput{width:70px}
 button{padding:9px 18px;border:1px solid var(--accent);border-radius:8px;

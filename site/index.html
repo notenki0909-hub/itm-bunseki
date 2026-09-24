@@ -14,10 +14,10 @@
 
   <div class="card">
     <div class="form-row">
-      <div class="field">
+      <div class="field ticker-wrap">
         <label for="ticker">ティッカー</label>
-        <input id="ticker" type="text" placeholder="AAPL" autocomplete="off" list="tickerHistoryList">
-        <datalist id="tickerHistoryList"></datalist>
+        <input id="ticker" type="text" placeholder="AAPL" autocomplete="off">
+        <div id="tickerHistoryDropdown" class="ticker-dropdown" hidden></div>
       </div>
       <div class="field">
         <label for="typeSelect">取引タイプ</label>
