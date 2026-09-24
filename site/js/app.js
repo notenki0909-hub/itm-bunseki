@@ -6,6 +6,7 @@ import {
   computeRecentMomentumStrip, computeMomentum, typeGroup, BADGE_LABELS,
   RISK_VARIANT_LABELS, isInfiniteLossVariant, computeWinRateByItmDays,
   breakEvenMaxLoss, breakEvenMinGain, sampleWarningLevel, expectedProfitOnClose,
+  breakEvenWinRateFromLoss,
 } from "./calc.js";
 import { renderDayProbChart, DAY_PROB_BANDS } from "./chart.js";
 import { renderEntryHeatmap, ENTRY_HEATMAP_BANDS } from "./heatmap.js";
@@ -48,6 +49,9 @@ function tabRecipe(t) {
     rrLossBasis: t.rrLossBasis,
     rrPremium: t.rrPremium,
     rrProfitRatio: t.rrProfitRatio,
+    rrCutLoss: t.rrCutLoss,
+    rrExpectedGain: t.rrExpectedGain,
+    rrSpreadWidth: t.rrSpreadWidth,
   };
 }
 
@@ -68,6 +72,9 @@ function applyRecipe(t, rec) {
     rrLossBasis: rec.rrLossBasis ?? t.rrLossBasis,
     rrPremium: rec.rrPremium ?? t.rrPremium,
     rrProfitRatio: rec.rrProfitRatio ?? t.rrProfitRatio,
+    rrCutLoss: rec.rrCutLoss ?? t.rrCutLoss,
+    rrExpectedGain: rec.rrExpectedGain ?? t.rrExpectedGain,
+    rrSpreadWidth: rec.rrSpreadWidth ?? t.rrSpreadWidth,
   });
 }
 
@@ -250,6 +257,14 @@ const els = {
   rrBaseWarning: document.getElementById("rrBaseWarning"),
   rrCondSummary: document.getElementById("rrCondSummary"),
   rrCondWarning: document.getElementById("rrCondWarning"),
+  rrSpreadWidthField: document.getElementById("rrSpreadWidthField"),
+  rrSpreadWidthInput: document.getElementById("rrSpreadWidthInput"),
+  rrExpectedGainField: document.getElementById("rrExpectedGainField"),
+  rrExpectedGainInput: document.getElementById("rrExpectedGainInput"),
+  rrExpectedGainWarning: document.getElementById("rrExpectedGainWarning"),
+  rrCutLossInput: document.getElementById("rrCutLossInput"),
+  rrCutLossWarning: document.getElementById("rrCutLossWarning"),
+  rrCutLossSummary: document.getElementById("rrCutLossSummary"),
 };
 
 function activeTab() {
@@ -276,6 +291,9 @@ function newTabState() {
     rrLossBasis: null,
     rrPremium: null,
     rrProfitRatio: null,
+    rrCutLoss: null,
+    rrExpectedGain: null,
+    rrSpreadWidth: null,
   };
 }
 
@@ -325,7 +343,13 @@ function switchTab(id) {
   els.rrLossBasisInput.value = t.rrLossBasis ?? "";
   els.rrPremiumInput.value = t.rrPremium ?? "";
   els.rrProfitRatioInput.value = t.rrProfitRatio ?? "";
+  els.rrCutLossInput.value = t.rrCutLoss ?? "";
+  els.rrExpectedGainInput.value = t.rrExpectedGain ?? "";
+  els.rrSpreadWidthInput.value = t.rrSpreadWidth ?? "";
+  els.rrCutLossWarning.hidden = true;
+  els.rrExpectedGainWarning.hidden = true;
   updateRiskRewardInputUI(t.typeKey, t.rrVariant);
+  updateCutLossInputUI(t.typeKey, t.rrVariant);
   setStatus("");
 
   if (t.closesFull) {
@@ -471,7 +495,11 @@ function onFormChange() {
   t.rrLossBasis = els.rrLossBasisInput.value === "" ? null : Number(els.rrLossBasisInput.value);
   t.rrPremium = els.rrPremiumInput.value === "" ? null : Number(els.rrPremiumInput.value);
   t.rrProfitRatio = els.rrProfitRatioInput.value === "" ? null : Number(els.rrProfitRatioInput.value);
+  t.rrCutLoss = els.rrCutLossInput.value === "" ? null : Number(els.rrCutLossInput.value);
+  t.rrExpectedGain = els.rrExpectedGainInput.value === "" ? null : Number(els.rrExpectedGainInput.value);
+  t.rrSpreadWidth = els.rrSpreadWidthInput.value === "" ? null : Number(els.rrSpreadWidthInput.value);
   updateRiskRewardInputUI(t.typeKey, t.rrVariant);
+  updateCutLossInputUI(t.typeKey, t.rrVariant);
 
   if (t.closesFull) renderAll(t);
   renderTabBar();
@@ -636,8 +664,8 @@ function updateRiskRewardInputUI(typeKey, variant) {
 
   els.rrInfiniteNote.hidden = !infinite;
   els.rrLossBasisInput.disabled = infinite;
-  els.rrPremiumInput.disabled = infinite || group === "buy";
-  els.rrProfitRatioInput.disabled = infinite || group === "buy";
+  els.rrPremiumInput.disabled = group === "buy";
+  els.rrProfitRatioInput.disabled = group === "buy";
 
   if (infinite) {
     els.rrLossBasisLabel.textContent = "損失額(無限大)";
@@ -648,6 +676,131 @@ function updateRiskRewardInputUI(typeKey, variant) {
   } else {
     els.rrLossBasisLabel.textContent = "株購入価格";
   }
+}
+
+// 「損切額から損益分岐を確認」欄の表示切り替え。見越し最大利益額は買い系のみ、
+// スプレッド幅(見越し最大利益額の上限計算用)はブルコール/ベアプットのみ表示する。
+function updateCutLossInputUI(typeKey, variant) {
+  const group = typeGroup(typeKey);
+  els.rrExpectedGainField.hidden = group !== "buy";
+  els.rrSpreadWidthField.hidden = !(group === "buy" && variant === "spread");
+}
+
+// 損切額・見越し最大利益額の理論上の上限を求める。
+//   売り(無限大でない): 実際の最大損失額(損失額入力−受取プレミアム額)
+//   売り(コール売り単体=無限大): 上限なし(null)
+//   買いの損切額: 支払いプレミアム額(常に有限)
+//   買いの見越し最大利益額: スプレッド買いはスプレッド幅−支払いプレミアム額、単体買いは上限なし
+function computeCutLossCaps(t) {
+  const group = typeGroup(t.typeKey);
+  const infinite = isInfiniteLossVariant(t.typeKey, t.rrVariant);
+  let cutLossCap = null;
+  let gainCap = null;
+  if (group === "sell") {
+    if (!infinite && t.rrLossBasis !== null && t.rrPremium !== null) {
+      cutLossCap = t.rrLossBasis - t.rrPremium;
+    }
+  } else {
+    if (t.rrLossBasis !== null) cutLossCap = t.rrLossBasis;
+    if (t.rrVariant === "spread" && t.rrSpreadWidth !== null && t.rrLossBasis !== null) {
+      const cap = t.rrSpreadWidth - t.rrLossBasis;
+      gainCap = cap >= 0 ? cap : null;
+    }
+  }
+  return { cutLossCap, gainCap };
+}
+
+// 損切額入力欄からフォーカスが外れたときに、上限を超えていれば上限値に丸め、
+// 理由を添えた警告を表示する(入力中は丸めない)。
+function onCutLossBlur() {
+  const t = activeTab();
+  if (!t) return;
+  t.rrCutLoss = els.rrCutLossInput.value === "" ? null : Number(els.rrCutLossInput.value);
+  const { cutLossCap } = computeCutLossCaps(t);
+  if (cutLossCap !== null && t.rrCutLoss !== null && t.rrCutLoss > cutLossCap) {
+    t.rrCutLoss = cutLossCap;
+    els.rrCutLossInput.value = cutLossCap.toFixed(2);
+    els.rrCutLossWarning.hidden = false;
+    els.rrCutLossWarning.textContent = `上限(${cutLossCap.toFixed(2)})を超えていたため、${cutLossCap.toFixed(2)}に調整しました`;
+  } else {
+    els.rrCutLossWarning.hidden = true;
+  }
+  if (t.closesFull) renderAll(t);
+  persistState();
+}
+
+// 見越し最大利益額入力欄も同様に、フォーカスが外れたときだけ上限に丸める。
+function onExpectedGainBlur() {
+  const t = activeTab();
+  if (!t) return;
+  t.rrExpectedGain = els.rrExpectedGainInput.value === "" ? null : Number(els.rrExpectedGainInput.value);
+  const { gainCap } = computeCutLossCaps(t);
+  if (gainCap !== null && t.rrExpectedGain !== null && t.rrExpectedGain > gainCap) {
+    t.rrExpectedGain = gainCap;
+    els.rrExpectedGainInput.value = gainCap.toFixed(2);
+    els.rrExpectedGainWarning.hidden = false;
+    els.rrExpectedGainWarning.textContent = `上限(${gainCap.toFixed(2)})を超えていたため、${gainCap.toFixed(2)}に調整しました`;
+  } else {
+    els.rrExpectedGainWarning.hidden = true;
+  }
+  if (t.closesFull) renderAll(t);
+  persistState();
+}
+
+// 勝率を「10回換算で何勝何敗」の表現に変換する(使い方ページ・他の説明文と同じ表現)。
+function tenTrialText(winRate) {
+  const wins = (winRate * 10).toFixed(1);
+  const losses = ((1 - winRate) * 10).toFixed(1);
+  return `10回換算で${wins}勝${losses}敗`;
+}
+
+// 「損切額から損益分岐を確認」セクションを描画する。実績の勝率(絞り込みなし/あり)
+// には依存しない単一の損益分岐勝率を算出し、両方の実績勝率と比較する。
+function renderCutLossSection(t, { group, infinite, premiumForBreakEven, baseWin, condWin }) {
+  const gain = group === "sell" ? premiumForBreakEven : t.rrExpectedGain;
+  const loss = t.rrCutLoss;
+  const neededWinRate = breakEvenWinRateFromLoss(gain, loss);
+
+  const neededText = neededWinRate === null ? "―" : (neededWinRate * 100).toFixed(1) + "%";
+  const neededSub = neededWinRate === null ? null : tenTrialText(neededWinRate);
+
+  function verdictItem(label, winInfo) {
+    const actual = winInfo.winRate;
+    if (neededWinRate === null || actual === null) {
+      return { label, value: "入力待ち", badge: "b-neutral" };
+    }
+    const favorable = actual >= neededWinRate;
+    return { label, value: favorable ? "統計的に有利" : "統計的に不利", badge: favorable ? "b0" : "b6" };
+  }
+
+  const baseVerdict = verdictItem("絞り込みなしとの比較", baseWin);
+  const condVerdict = verdictItem("絞り込みありとの比較", condWin);
+
+  const T = "riskRewardExplain";
+  const items = [
+    {
+      label: "損益分岐勝率", value: neededText, sub: neededSub,
+      note: group === "sell"
+        ? "損切額と予想利益(利確時)から、期待値がちょうどゼロになる勝率を算出したものです(p=損切額÷(予想利益+損切額))。実績の勝率(絞り込みなし/あり)は一切使っていません。"
+        : "損切額と見越し最大利益額から、期待値がちょうどゼロになる勝率を算出したものです(p=損切額÷(見越し最大利益額+損切額))。実績の勝率(絞り込みなし/あり)は一切使っていません。",
+    },
+    {
+      label: baseVerdict.label, value: `<span class="badge ${baseVerdict.badge}">${baseVerdict.value}</span>`, isBadge: true,
+      note: "上の「絞り込みなし」の実績勝率が、左の損益分岐勝率以上であれば「統計的に有利」です。",
+    },
+    {
+      label: condVerdict.label, value: `<span class="badge ${condVerdict.badge}">${condVerdict.value}</span>`, isBadge: true,
+      note: "上の「エントリー条件で絞り込みあり」の実績勝率が、左の損益分岐勝率以上であれば「統計的に有利」です。",
+    },
+  ];
+
+  els.rrCutLossSummary.innerHTML = items.map((it) =>
+    `<div class="stat" data-target="${T}" data-note="${it.note}">`
+    + (it.isBadge ? `${it.value}<br>` : `<b>${it.value}</b>`)
+    + `<span>${it.label}</span>`
+    + (it.sub ? `<span class="stat-sub">${it.sub}</span>` : "")
+    + `</div>`
+  ).join("");
 }
 
 function renderRiskReward(t) {
@@ -675,18 +828,21 @@ function renderRiskReward(t) {
 
   // 実際の最大損失額。売りは(権利行使価格 or スプレッド幅)−受取プレミアム(満期まで
   // 保有した場合の最悪ケースなので利確割合は関係しない)、買いは支払いプレミアムそのもの。
+  // コール売り(単体)は理論上無限大のため計算しない。
   // 損益分岐の計算に使う「勝ちトレードの利益額」は、売りは受取プレミアム×利確割合
   // (反対売買の買い戻しコスト控除後の予想利益)、買いは支払いプレミアム(=損失額入力そのもの)。
+  // 予想利益(売り)は、コール売り(単体)でも「損切額から損益分岐を確認」セクションで
+  // 使うため、無限大かどうかに関わらず計算する。
   let actualMaxLoss = null;
   let premiumForBreakEven = null;
-  if (!infinite) {
-    if (group === "sell") {
-      premiumForBreakEven = expectedProfitOnClose(t.rrPremium, t.rrProfitRatio);
+  if (group === "sell") {
+    premiumForBreakEven = expectedProfitOnClose(t.rrPremium, t.rrProfitRatio);
+    if (!infinite) {
       actualMaxLoss = (t.rrLossBasis !== null && t.rrPremium !== null) ? t.rrLossBasis - t.rrPremium : null;
-    } else {
-      premiumForBreakEven = t.rrLossBasis;
-      actualMaxLoss = t.rrLossBasis;
     }
+  } else {
+    premiumForBreakEven = t.rrLossBasis;
+    actualMaxLoss = t.rrLossBasis;
   }
 
   renderRiskRewardBlock(els.rrBaseSummary, els.rrBaseWarning, {
@@ -695,6 +851,7 @@ function renderRiskReward(t) {
   renderRiskRewardBlock(els.rrCondSummary, els.rrCondWarning, {
     group, infinite, winInfo: condWin, actualMaxLoss, premiumForBreakEven, isBase: false,
   });
+  renderCutLossSection(t, { group, infinite, premiumForBreakEven, baseWin, condWin });
 
   els.riskRewardCard.hidden = false;
   setupStatExplain();
@@ -864,6 +1021,11 @@ function init() {
   els.rrLossBasisInput.addEventListener("input", debounce(onFormChange, 250));
   els.rrPremiumInput.addEventListener("input", debounce(onFormChange, 250));
   els.rrProfitRatioInput.addEventListener("input", debounce(onFormChange, 250));
+  els.rrSpreadWidthInput.addEventListener("input", debounce(onFormChange, 250));
+  els.rrCutLossInput.addEventListener("input", debounce(onFormChange, 250));
+  els.rrCutLossInput.addEventListener("blur", onCutLossBlur);
+  els.rrExpectedGainInput.addEventListener("input", debounce(onFormChange, 250));
+  els.rrExpectedGainInput.addEventListener("blur", onExpectedGainBlur);
   els.shareBtn.addEventListener("click", onShareLink);
   els.openDetailBtn.addEventListener("click", onOpenDetail);
 }

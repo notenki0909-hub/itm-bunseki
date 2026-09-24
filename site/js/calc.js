@@ -297,6 +297,16 @@ export function breakEvenMaxLoss(premium, winRate) {
   return premium * (winRate / (1 - winRate));
 }
 
+// breakEvenMaxLossの逆算: 自分で決めた損切額と利益額(予想利益/見越し最大利益額)
+// から、損益分岐点となる勝率を算出する。p×利益 = (1-p)×損切額 を p について
+// 解いたもの(p = 損切額 ÷ (利益+損切額))。実際の勝率(実績)は一切使わないため、
+// 「絞り込みなし/あり」どちらの母集団にも依存しない。
+export function breakEvenWinRateFromLoss(gain, loss) {
+  if (gain === null || loss === null || !(gain >= 0) || !(loss >= 0)) return null;
+  if (gain + loss <= 0) return null;
+  return loss / (gain + loss);
+}
+
 // 買い系: 支払いプレミアムと勝率から、損益分岐に必要な「最低利益額」を算出する。
 // (1-p)×プレミアム = p×利益額 が損益分岐点なので、利益額 = プレミアム×(1-p)/p。
 export function breakEvenMinGain(premium, winRate) {

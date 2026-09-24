@@ -93,6 +93,7 @@ h1{font-size:20px;margin:0 0 4px}
 .card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:16px;margin-bottom:16px}
 .form-row{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end;margin-bottom:12px}
 .field{display:flex;flex-direction:column;gap:4px}
+.field[hidden]{display:none}
 .field label{font-size:12px;color:var(--muted)}
 .field label[data-target]{cursor:pointer;width:fit-content}
 .field label[data-target]:hover{color:var(--accent);text-decoration:underline}
@@ -103,6 +104,7 @@ h1{font-size:20px;margin:0 0 4px}
 .field input:disabled,.field select:disabled{background:repeating-linear-gradient(135deg,var(--line),var(--line) 4px,var(--field) 4px,var(--field) 9px);
   color:var(--muted);opacity:.55;cursor:not-allowed;border-style:dashed}
 #ticker{width:140px;text-transform:uppercase}
+.field-warn{font-size:11px;color:var(--gC)}
 .ticker-wrap{position:relative}
 .ticker-dropdown{position:absolute;top:calc(100% + 4px);left:0;min-width:140px;max-height:220px;
   overflow-y:auto;background:var(--card);border:1px solid var(--line);border-radius:8px;
