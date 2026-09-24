@@ -69,6 +69,7 @@
   <div class="toc">
     <p class="toc-title">目次</p>
     <ol>
+      <li><a href="#g-flow">ご利用の流れ</a></li>
       <li><a href="#g-overview">このツールでできること</a></li>
       <li><a href="#g-inputs">入力項目</a></li>
       <li><a href="#g-today">「本日の状況」の見方</a></li>
@@ -82,8 +83,35 @@
     </ol>
   </div>
 
+  <section class="g-section" id="g-flow">
+    <h2><span class="g-num">1</span>ご利用の流れ</h2>
+    <p>
+      はじめて使う方向けに、実際にどの順番で操作し、何を見て、その結果をもとに次に何をすればいいかをまとめます。各項目の詳しい意味は2章以降を参照してください。
+    </p>
+
+    <h3>ステップ1：まず分析する</h3>
+    <p>
+      画面上部の入力欄に<b>ティッカー</b>（例: AAPL）と<b>取引タイプ</b>（プット売・コール売・コール買・プット買）を入力し、必要なら権利行使価格の比率・判定期間・集計期間も調整して、「分析する」を押します。はじめての場合はデフォルト値のままで構いません。
+    </p>
+
+    <h3>ステップ2：何を見て判断するか</h3>
+    <ul>
+      <li>「本日の状況」で、今の株価と、その取引タイプで狙う権利行使価格の目安を確認します</li>
+      <li>「分析結果」の<b>総合判定バッジ</b>（激熱〜ピンチ）と<b>ITM発生エントリー数の割合</b>で、過去データ上おおまかに有利か不利かを把握します</li>
+    </ul>
+
+    <h3>ステップ3：それを踏まえて次に何をするか</h3>
+    <p>ステップ2で気になった点に応じて、以下のいずれか（または複数）に進みます。</p>
+    <ul>
+      <li>「今日のような値動きの直後は勝率が変わるか」を確かめたい → <b>「エントリー条件で絞り込み」</b>で、値動き条件に当てはまった日だけに絞った勝率を確認します</li>
+      <li>勝率だけでなく1回あたりの損益額まで踏まえて判断したい → <b>「リスクリワード分析」</b>で、損益分岐点や損切額を確認します</li>
+      <li>エントリー日ごとの詳しい値動きを見たい → <b>「詳細マトリクスを別ページで見る」</b>から、元Excel形式の一覧で確認します</li>
+    </ul>
+    <p class="note">数値を1つ変えるたびにデータの再取得はしません。取引タイプ・比率・判定期間・集計期間を変えて何度も試して比較するのが基本的な使い方です。</p>
+  </section>
+
   <section class="g-section" id="g-overview">
-    <h2><span class="g-num">1</span>このツールでできること</h2>
+    <h2><span class="g-num">2</span>このツールでできること</h2>
     <p>
       米国株のティッカーを入力すると、過去の株価データから「その時点の終値に対してある比率をかけた価格（権利行使価格）に対し、その後どれくらいの確率でITM（In The Money）になったか」を機械的に集計して表示します。
       オプション取引（プット売り・コール売り・コール買い・プット買い）のポジションを検討する際、過去の傾向を把握するための参考情報です。
@@ -92,7 +120,7 @@
   </section>
 
   <section class="g-section" id="g-inputs">
-    <h2><span class="g-num">2</span>入力項目</h2>
+    <h2><span class="g-num">3</span>入力項目</h2>
     <table>
       <tr><th>項目</th><th>内容</th></tr>
       <tr><td>ティッカー</td><td>分析したい米国株の銘柄コード（例: AAPL, TSLA, MSFT）</td></tr>
@@ -108,7 +136,7 @@
   </section>
 
   <section class="g-section" id="g-today">
-    <h2><span class="g-num">3</span>「本日の状況」の見方</h2>
+    <h2><span class="g-num">4</span>「本日の状況」の見方</h2>
     <p>ティッカーを分析すると、最新の株価をもとにした現在の状況が表示されます。</p>
     <table>
       <tr><th>項目</th><th>内容</th></tr>
@@ -120,7 +148,7 @@
   </section>
 
   <section class="g-section" id="g-result">
-    <h2><span class="g-num">4</span>「分析結果」の見方</h2>
+    <h2><span class="g-num">5</span>「分析結果」の見方</h2>
     <div class="ex">
       <span class="ex-label">判定基準</span>
       権利行使価格（各エントリー日の終値 × 比率）だけを基準に、集計期間内の<b>全エントリー日</b>でITMになったかを判定します。値動き条件などの絞り込みは一切行いません。
@@ -255,7 +283,7 @@
   </section>
 
   <section class="g-section" id="g-detail">
-    <h2><span class="g-num">5</span>詳細マトリクス（元Excel形式）</h2>
+    <h2><span class="g-num">6</span>詳細マトリクス（元Excel形式）</h2>
     <p>
       「詳細マトリクスを別ページで見る」をクリックすると、同じタブ内で詳細マトリクスのページに移動し、元のExcelシートに近い形式で、エントリー日1日ごとの値動きを一覧できます（分析ページに戻るときは画面右上のリンクから）。
     </p>
@@ -273,7 +301,7 @@
   </section>
 
   <section class="g-section" id="g-condition">
-    <h2><span class="g-num">6</span>「エントリー条件で絞り込み」の見方</h2>
+    <h2><span class="g-num">7</span>「エントリー条件で絞り込み」の見方</h2>
     <div class="ex">
       <span class="ex-label">判定基準</span>
       上の「分析結果」と同じ権利行使価格の基準に加えて、<b>指定した値動き条件に当てはまった日だけ</b>に絞ってエントリーした場合を判定します。「分析結果」の対象日を、値動き条件でさらに絞り込んだものです（ITMの判定ロジック自体は分析結果と同一）。
@@ -333,7 +361,7 @@
   </section>
 
   <section class="g-section" id="g-riskreward">
-    <h2><span class="g-num">7</span>「リスクリワード分析」の見方</h2>
+    <h2><span class="g-num">8</span>「リスクリワード分析」の見方</h2>
 
     <h3>リスクリワードとは</h3>
     <p>
@@ -526,7 +554,7 @@
   </section>
 
   <section class="g-section" id="g-tabs">
-    <h2><span class="g-num">8</span>タブ機能</h2>
+    <h2><span class="g-num">9</span>タブ機能</h2>
     <p>
       画面上部の「＋ 新規タブ」で新しいタブを開けます。1銘柄でタイプ違い（プット売とコール買など）を見比べたり、複数銘柄を切り替えながら見たりできます。
     </p>
@@ -539,7 +567,7 @@
   </section>
 
   <section class="g-section" id="g-save">
-    <h2><span class="g-num">9</span>状態の保存・引き継ぎ</h2>
+    <h2><span class="g-num">10</span>状態の保存・引き継ぎ</h2>
     <table>
       <tr><th>方法</th><th>できること</th></tr>
       <tr><td>自動保存（同一端末）</td><td>入力内容やタブは自動的にブラウザに保存されます。ページの再読み込み、使い方・見方ページへの行き来、ブラウザやツールを閉じて後日再度開いた場合でも、同じ端末・同じブラウザであれば続きから再開できます</td></tr>
@@ -553,7 +581,7 @@
   </section>
 
   <section class="g-section" id="g-data">
-    <h2><span class="g-num">10</span>データについて</h2>
+    <h2><span class="g-num">11</span>データについて</h2>
     <ul>
       <li>対応は米国株のみです</li>
       <li>データ取得元は Twelve Data です</li>
