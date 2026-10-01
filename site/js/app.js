@@ -1001,7 +1001,7 @@ function badgeLevelClass(level) {
 // 作り直されるため、この関数は再描画後にも呼び直される。既に配線済みの要素
 // (静的な項目)に二重で登録しないよう、配線済みフラグで判定する。
 function setupStatExplain() {
-  document.querySelectorAll(".stat[data-note], .chart-title[data-note], .field label[data-note]").forEach((el) => {
+  document.querySelectorAll(".stat[data-note], .chart-title[data-note], .field label[data-note], .card-title-toggle[data-note]").forEach((el) => {
     if (el.dataset.explainWired) return;
     el.dataset.explainWired = "1";
     el.addEventListener("click", () => {

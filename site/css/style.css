@@ -161,6 +161,10 @@ button:disabled{opacity:.6;cursor:default}
 .chart-title[data-target]:hover{color:var(--accent);text-decoration:underline}
 .chart-title[data-target].active{color:var(--accent)}
 
+.card-title-toggle{cursor:pointer;display:inline-block}
+.card-title-toggle:hover{color:var(--accent)}
+.card-title-toggle.active{color:var(--accent)}
+
 .momentum-strip{display:flex;gap:8px;flex-wrap:wrap}
 .momentum-cell{flex:1;min-width:64px;background:var(--field);border:1px solid var(--line);
   border-radius:8px;padding:8px 6px;text-align:center}
