@@ -27,6 +27,79 @@ export const DEFAULT_PERIOD_DAYS = 253;
 export const MOMENTUM_LOOKBACK_OPTIONS = [1, 2, 3, 4, 5, 6, 7];
 export const DEFAULT_MOMENTUM_LOOKBACK = 7;
 
+// 「変動幅の統計」で表示する期間の一覧。3か月/半年/1年は営業日換算(1年=253営業日基準)。
+export const VOLATILITY_PERIODS = [
+  { label: "1営業日", days: 1 },
+  { label: "5営業日", days: 5 },
+  { label: "11営業日(半月)", days: 11 },
+  { label: "22営業日(1か月)", days: 22 },
+  { label: "3か月", days: 63 },
+  { label: "半年", days: 126 },
+  { label: "1年", days: 253 },
+];
+// 「直近1年の変動幅(額)」の対象範囲(営業日数)。
+export const RECENT_VOLATILITY_WINDOW = 253;
+
+/**
+ * 指定した営業日数(days)だけ離れた2点間の騰落率を、取得済みの全データ(closes)から
+ * ローリングウィンドウですべて求め、絶対値の平均・最大上昇率・最大下落率を返す。
+ * 符号は無視して絶対値で平均するため、「その期間でどれくらい値が動きやすいか」の指標になる
+ * (上昇・下落のどちらかに偏った平均ではない)。
+ * @param {number[]} closes
+ * @param {number} days
+ * @returns {{avgAbsPct:number, maxRisePct:number, maxFallPct:number, count:number}|null}
+ */
+export function computeVolatilityStats(closes, days) {
+  if (!Array.isArray(closes)) return null;
+  const n = closes.length;
+  if (n <= days) return null;
+  let sumAbs = 0;
+  let count = 0;
+  let maxRise = -Infinity;
+  let maxFall = Infinity;
+  for (let i = 0; i + days < n; i++) {
+    const c0 = closes[i];
+    const c1 = closes[i + days];
+    if (!(c0 > 0) || !(c1 > 0)) continue;
+    const change = c1 / c0 - 1;
+    sumAbs += Math.abs(change);
+    count++;
+    if (change > maxRise) maxRise = change;
+    if (change < maxFall) maxFall = change;
+  }
+  if (count === 0) return null;
+  return { avgAbsPct: sumAbs / count, maxRisePct: maxRise, maxFallPct: maxFall, count };
+}
+
+/**
+ * 「直近1年の変動幅(額)」を計算する。終点(end)が直近recentWindow営業日以内に
+ * 収まるウィンドウだけに絞って、始点との差額(絶対値)を平均する。
+ * 始点がrecentWindowより前のデータにまたがることはある(例えば1年(253営業日)の
+ * 期間を見るには、終点だけでなく253営業日分遡った始点のデータも必要なため)。
+ * @param {number[]} closes
+ * @param {number} days
+ * @param {number} [recentWindow]
+ * @returns {{avgAbsAmount:number, count:number}|null}
+ */
+export function computeRecentVolatilityAmount(closes, days, recentWindow = RECENT_VOLATILITY_WINDOW) {
+  if (!Array.isArray(closes)) return null;
+  const n = closes.length;
+  if (n <= days) return null;
+  const endFrom = Math.max(days, n - recentWindow);
+  let sumAbs = 0;
+  let count = 0;
+  for (let end = endFrom; end < n; end++) {
+    const start = end - days;
+    const c0 = closes[start];
+    const c1 = closes[end];
+    if (!(c0 > 0) || !(c1 > 0)) continue;
+    sumAbs += Math.abs(c1 - c0);
+    count++;
+  }
+  if (count === 0) return null;
+  return { avgAbsAmount: sumAbs / count, count };
+}
+
 // 判定バッジの7段階しきい値。表示中の「期間内ITM確率」と矛盾しないよう、
 // バッジも同じ overallItmProb（有利方向への確率に変換した値）から直接算出する。
 // オプション売りは「利益は限定的・損失は相対的に大きい」非対称な構造のため、

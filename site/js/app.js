@@ -7,6 +7,7 @@ import {
   RISK_VARIANT_LABELS, isInfiniteLossVariant, computeWinRateByItmDays,
   breakEvenMaxLoss, breakEvenMinGain, sampleWarningLevel, expectedProfitOnClose,
   breakEvenWinRateFromLoss,
+  VOLATILITY_PERIODS, computeVolatilityStats, computeRecentVolatilityAmount,
 } from "./calc.js";
 import { renderDayProbChart, DAY_PROB_BANDS } from "./chart.js";
 import { renderEntryHeatmap, ENTRY_HEATMAP_BANDS } from "./heatmap.js";
@@ -216,6 +217,9 @@ const els = {
   periodSelect: document.getElementById("periodSelect"),
   status: document.getElementById("status"),
 
+  volatilityCard: document.getElementById("volatilityCard"),
+  volatilityTableBody: document.getElementById("volatilityTableBody"),
+
   todayCard: document.getElementById("todayCard"),
   todayDate: document.getElementById("todayDate"),
   todayRange: document.getElementById("todayRange"),
@@ -361,6 +365,7 @@ function switchTab(id) {
   if (t.closesFull) {
     renderAll(t);
   } else {
+    els.volatilityCard.hidden = true;
     els.todayCard.hidden = true;
     els.result.hidden = true;
     els.conditionCard.hidden = true;
@@ -455,6 +460,7 @@ async function onAnalyze() {
   }
   els.analyzeBtn.disabled = true;
   setStatus("取得中…");
+  els.volatilityCard.hidden = true;
   els.todayCard.hidden = true;
   els.result.hidden = true;
   els.conditionCard.hidden = true;
@@ -531,10 +537,31 @@ function periodDatesOf(t) {
 }
 
 function renderAll(t) {
+  renderVolatilityCard(t);
   renderTodayCard(t);
   renderMainAnalysis(t);
   renderConditionCard(t);
   renderRiskReward(t);
+}
+
+// 「変動幅の統計」カードを描画する。集計期間セレクターの影響を受けず、
+// 常に取得済みの全データ(closesFull、最大800営業日)を使う。
+function renderVolatilityCard(t) {
+  const closes = t.closesFull;
+  if (!closes || closes.length < 2) {
+    els.volatilityCard.hidden = true;
+    return;
+  }
+  els.volatilityTableBody.innerHTML = VOLATILITY_PERIODS.map(({ label, days }) => {
+    const stats = computeVolatilityStats(closes, days);
+    const recent = computeRecentVolatilityAmount(closes, days);
+    const pctText = stats ? (stats.avgAbsPct * 100).toFixed(2) + "%" : "―";
+    const riseText = stats ? "+" + (stats.maxRisePct * 100).toFixed(2) + "%" : "―";
+    const fallText = stats ? (stats.maxFallPct * 100).toFixed(2) + "%" : "―";
+    const amountText = recent ? recent.avgAbsAmount.toFixed(2) : "―";
+    return `<tr><td>${label}</td><td>${pctText}</td><td>${riseText}</td><td>${fallText}</td><td>${amountText}</td></tr>`;
+  }).join("");
+  els.volatilityCard.hidden = false;
 }
 
 function renderTodayCard(t) {

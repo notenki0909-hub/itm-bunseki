@@ -40,6 +40,17 @@
     <div id="status"></div>
   </div>
 
+  <div id="volatilityCard" class="card" hidden>
+    <h2 style="margin:0 0 10px;font-size:16px">変動幅の統計</h2>
+    <p class="sub" style="margin:0 0 10px"><b>考え方：</b>取得済みの全データ（最大800営業日）を使い、期間ごとに「どれくらい値が動きやすいか」を集計したものです。平均変動幅・最大上昇率・最大下落率は上昇/下落を問わず全データから算出し、「直近1年の変動幅(額)」のみ直近1年のデータに限定して金額で算出します（株価水準が過去と大きく変わっている場合、金額は直近のデータの方が実態に近いため）。</p>
+    <table class="volatility-table">
+      <thead>
+        <tr><th>期間</th><th>平均変動幅(%)</th><th>最大上昇率</th><th>最大下落率</th><th>直近1年の変動幅(額)</th></tr>
+      </thead>
+      <tbody id="volatilityTableBody"></tbody>
+    </table>
+  </div>
+
   <div id="todayCard" class="card" hidden>
     <h2 style="margin:0 0 10px;font-size:16px">本日の状況</h2>
     <div class="summary">
