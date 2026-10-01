@@ -697,7 +697,9 @@ function updateCutLossInputUI(typeKey, variant) {
 //   売り(無限大でない): 実際の最大損失額(損失額入力−受取プレミアム額)
 //   売り(コール売り単体=無限大): 上限なし(null)
 //   買いの損切額: 支払いプレミアム額(常に有限)
-//   買いの見越し最大利益額: スプレッド買いはスプレッド幅−支払いプレミアム額、単体買いは上限なし
+//   買いの見越し最大利益額: スプレッド買いはスプレッド幅−支払いプレミアム額、
+//     コール買い単体は上限なし(プット買い単体は理論上は権利行使価格−支払いプレミアム額が上限だが、
+//     権利行使価格の絶対値を入力していないためチェックしない)
 function computeCutLossCaps(t) {
   const group = typeGroup(t.typeKey);
   const infinite = isInfiniteLossVariant(t.typeKey, t.rrVariant);
