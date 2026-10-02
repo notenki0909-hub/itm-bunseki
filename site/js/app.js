@@ -260,6 +260,7 @@ const els = {
   rrVariantSelect: document.getElementById("rrVariantSelect"),
   rrDepthInput: document.getElementById("rrDepthInput"),
   rrDepthPct: document.getElementById("rrDepthPct"),
+  rrBreakEvenSummary: document.getElementById("rrBreakEvenSummary"),
   rrLossBasisInput: document.getElementById("rrLossBasisInput"),
   rrLossBasisLabel: document.getElementById("rrLossBasisLabel"),
   rrPremiumInput: document.getElementById("rrPremiumInput"),
@@ -885,6 +886,7 @@ function renderRiskReward(t) {
     delete els.rrLossBasisInput.dataset.auto;
     els.rrLossBasisInput.value = t.rrLossBasis ?? "";
   }
+  renderBreakEvenPrice(t, closes, todayStrike);
   const depthParams = { ratio: t.ratio, itmWhen: type.itmWhen, window: t.windowDays, depthPct };
 
   // 母集団1: 絞り込みなし(「分析結果」と同じ母集団)
@@ -931,6 +933,51 @@ function renderRiskReward(t) {
 
   els.riskRewardCard.hidden = false;
   setupStatExplain();
+}
+
+// 満期時の損益分岐点(株価)を描画する。単体・スプレッドとも、上部の比率で決まる権利行使価格
+// (売り系は売り建て側、買い系は買い建て側)にプレミアムを加減した値になる
+// (スプレッドでは、もう一方の脚との差額=スプレッド幅は損益分岐点に影響しない)。
+// プット系は権利行使価格−プレミアム、コール系は権利行使価格＋プレミアム。
+// 売り系は受取プレミアム額、買い系は支払いプレミアム額(スプレッドは差し引き後の正味の額)を使う。
+function renderBreakEvenPrice(t, closes, todayStrike) {
+  const type = OPTION_TYPES[t.typeKey];
+  const group = typeGroup(t.typeKey);
+  const isPut = type.itmWhen === "below";
+  const premium = group === "sell" ? t.rrPremium : t.rrLossBasis;
+  const premiumName = group === "sell" ? "受取プレミアム額" : "支払いプレミアム額";
+  const formula = `権利行使価格${isPut ? "−" : "＋"}${premiumName}`;
+  const latest = closes[closes.length - 1];
+  const T = "riskRewardExplain";
+
+  const hasPremium = premium !== null && premium !== undefined && premium >= 0;
+  const breakEven = hasPremium ? todayStrike + (isPut ? -premium : premium) : null;
+  const diffPct = breakEven === null ? null : breakEven / latest - 1;
+
+  const items = [
+    {
+      label: "現在の権利行使価格", value: todayStrike.toFixed(2), sub: "終値×比率",
+      note: "本日の終値×権利行使価格の比率です。\nスプレッドの場合は、売り系は売り建てる側、買い系は買い建てる側の権利行使価格にあたります(もう一方の権利行使価格との差額は損益分岐点に影響しません)。",
+    },
+    {
+      label: "損益分岐点(満期時の株価)", value: breakEven === null ? "―" : breakEven.toFixed(2),
+      sub: breakEven === null ? `${premiumName}を入力すると表示` : formula,
+      note: `満期時にこの株価であれば、損益がちょうどゼロになる価格です(${formula})。\n`
+        + (group === "sell"
+          ? (isPut ? "プット売りは、満期時の株価がこの価格を下回ると損失になります。" : "コール売りは、満期時の株価がこの価格を上回ると損失になります。")
+          : (isPut ? "プット買いは、満期時の株価がこの価格を下回ると利益になります。" : "コール買いは、満期時の株価がこの価格を上回ると利益になります。"))
+        + "\nスプレッドの場合は、プレミアムに差し引き後の正味の額(受取−支払い)を入力してください。\nプレミアムは1株あたりの額で、手数料は含みません。",
+    },
+    {
+      label: "現在の株価との差", value: diffPct === null ? "―" : (diffPct >= 0 ? "+" : "") + (diffPct * 100).toFixed(2) + "%",
+      sub: `現在の株価${latest.toFixed(2)}`,
+      note: "損益分岐点が、現在の株価(最新の終値)から見て何%離れているかです。\n例えばプット売りで-8%なら、株価が現在より8%下がるまでは(満期時に)損失にならない、という余裕の目安になります。",
+    },
+  ];
+  els.rrBreakEvenSummary.innerHTML = items.map((it) =>
+    `<div class="stat" data-target="${T}" data-note="${it.note}"><b>${it.value}</b><span>${it.label}</span>`
+    + (it.sub ? `<span class="stat-sub">${it.sub}</span>` : "") + `</div>`
+  ).join("");
 }
 
 // リスクリワード分析の1ブロック(絞り込みなし/絞り込みあり、それぞれ)を描画する。
