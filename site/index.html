@@ -197,7 +197,8 @@ ITMが良い結果か悪い結果かは取引タイプにより異なります�
     <div class="form-row">
       <div class="field">
         <label for="rrLossBasisInput" data-target="riskRewardExplain"
-          data-note="プット売り(単体)なら株購入価格(権利行使価格)、スプレッドなら2つの権利行使価格の差額（スプレッド幅）、単体買い/デビットスプレッドなら支払いプレミアム額を入力します。
+          data-note="プット売り(単体)の株購入価格は、現在の権利行使価格(本日の終値×権利行使価格の比率)を自動で使うため、入力不要です(入力欄には自動計算した値が表示されます)。
+スプレッドなら2つの権利行使価格の差額（スプレッド幅）、単体買い/デビットスプレッドなら支払いプレミアム額を入力します。
 コール売り(単体)は損失が無限大のため使いません。">
           <span id="rrLossBasisLabel">株購入価格</span></label>
         <input id="rrLossBasisInput" type="number" step="0.01" min="0" placeholder="例: 45.00">

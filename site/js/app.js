@@ -353,6 +353,7 @@ function switchTab(id) {
   els.rrVariantSelect.value = t.rrVariant;
   els.rrDepthInput.value = t.rrDepth ?? "";
   els.rrLossBasisInput.value = t.rrLossBasis ?? "";
+  delete els.rrLossBasisInput.dataset.auto;
   els.rrPremiumInput.value = t.rrPremium ?? "";
   els.rrProfitRatioInput.value = t.rrProfitRatio ?? "";
   els.rrCutLossInput.value = t.rrCutLoss ?? "";
@@ -506,7 +507,9 @@ function onFormChange() {
   }
   t.rrVariant = els.rrVariantSelect.value;
   t.rrDepth = els.rrDepthInput.value === "" ? null : Math.max(0, Number(els.rrDepthInput.value));
-  t.rrLossBasis = els.rrLossBasisInput.value === "" ? null : Number(els.rrLossBasisInput.value);
+  if (!els.rrLossBasisInput.dataset.auto) {
+    t.rrLossBasis = els.rrLossBasisInput.value === "" ? null : Number(els.rrLossBasisInput.value);
+  }
   t.rrPremium = els.rrPremiumInput.value === "" ? null : Number(els.rrPremiumInput.value);
   t.rrProfitRatio = els.rrProfitRatioInput.value === "" ? null : Number(els.rrProfitRatioInput.value);
   t.rrCutLoss = els.rrCutLossInput.value === "" ? null : Number(els.rrCutLossInput.value);
@@ -692,14 +695,30 @@ function initRiskRewardVariantOptions(typeKey) {
     `<option value="naked">${labels.naked}</option><option value="spread">${labels.spread}</option>`;
 }
 
+// プット売り(単体)の株購入価格は、権利行使される価格＝現在の権利行使価格(本日の終値×比率)
+// そのものなので、入力させず自動で使う。
+function isAutoStockPrice(typeKey, variant) {
+  return typeKey === "put_sell" && variant === "naked";
+}
+
+// リスクリワード分析で使う「損失額入力欄」相当の値。プット売り(単体)は自動計算、他は入力値。
+function lossBasisOf(t) {
+  if (isAutoStockPrice(t.typeKey, t.rrVariant)) {
+    const c = t.closesFull;
+    return c && c.length ? c[c.length - 1] * t.ratio : null;
+  }
+  return t.rrLossBasis;
+}
+
 // 選択中の取引の種類(売り/買い、単体/スプレッド、コール売り単体=無限大)に応じて、
 // 損失額・受取プレミアムの入力欄のラベルと有効/無効を切り替える。
 function updateRiskRewardInputUI(typeKey, variant) {
   const group = typeGroup(typeKey);
   const infinite = isInfiniteLossVariant(typeKey, variant);
+  const auto = isAutoStockPrice(typeKey, variant);
 
   els.rrInfiniteNote.hidden = !infinite;
-  els.rrLossBasisInput.disabled = infinite;
+  els.rrLossBasisInput.disabled = infinite || auto;
   els.rrPremiumInput.disabled = group === "buy";
   els.rrProfitRatioInput.disabled = group === "buy";
 
@@ -710,7 +729,7 @@ function updateRiskRewardInputUI(typeKey, variant) {
   } else if (variant === "spread") {
     els.rrLossBasisLabel.textContent = "権利行使価格の差額(スプレッド幅)";
   } else {
-    els.rrLossBasisLabel.textContent = "株購入価格";
+    els.rrLossBasisLabel.textContent = auto ? "株購入価格(現在の権利行使価格・自動)" : "株購入価格";
   }
 }
 
@@ -735,8 +754,9 @@ function computeCutLossCaps(t) {
   let cutLossCap = null;
   let gainCap = null;
   if (group === "sell") {
-    if (!infinite && t.rrLossBasis !== null && t.rrPremium !== null) {
-      cutLossCap = t.rrLossBasis - t.rrPremium;
+    const basis = lossBasisOf(t);
+    if (!infinite && basis !== null && t.rrPremium !== null) {
+      cutLossCap = basis - t.rrPremium;
     }
   } else {
     if (t.rrLossBasis !== null) cutLossCap = t.rrLossBasis;
@@ -855,6 +875,16 @@ function renderRiskReward(t) {
   els.rrDepthPct.textContent = depthDollar > 0
     ? `＝ 権利行使価格の約${(depthPct * 100).toFixed(2)}%（現在の権利行使価格${todayStrike.toFixed(2)}に対して）`
     : "＝ 0%（一度でもITMになれば該当）";
+  // プット売り(単体)は株購入価格欄を自動値(現在の権利行使価格)で表示する。
+  // 自動でなくなったとき(取引の種類を切り替えたとき)は、入力済みの値に戻す。
+  if (isAutoStockPrice(t.typeKey, t.rrVariant)) {
+    const basis = lossBasisOf(t);
+    els.rrLossBasisInput.value = basis === null ? "" : basis.toFixed(2);
+    els.rrLossBasisInput.dataset.auto = "1";
+  } else if (els.rrLossBasisInput.dataset.auto) {
+    delete els.rrLossBasisInput.dataset.auto;
+    els.rrLossBasisInput.value = t.rrLossBasis ?? "";
+  }
   const depthParams = { ratio: t.ratio, itmWhen: type.itmWhen, window: t.windowDays, depthPct };
 
   // 母集団1: 絞り込みなし(「分析結果」と同じ母集団)
@@ -883,7 +913,8 @@ function renderRiskReward(t) {
   if (group === "sell") {
     premiumForBreakEven = expectedProfitOnClose(t.rrPremium, t.rrProfitRatio);
     if (!infinite) {
-      actualMaxLoss = (t.rrLossBasis !== null && t.rrPremium !== null) ? t.rrLossBasis - t.rrPremium : null;
+      const basis = lossBasisOf(t);
+      actualMaxLoss = (basis !== null && t.rrPremium !== null) ? basis - t.rrPremium : null;
     }
   } else {
     premiumForBreakEven = t.rrLossBasis;
