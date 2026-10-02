@@ -172,7 +172,7 @@ ITMが良い結果か悪い結果かは取引タイプにより異なります�
     <p class="sub" style="margin:0 0 10px"><b>リスクリワードとは：</b><br>
       ・1回の負けで失う額が小さく、1回の勝ちで得る額が大きいほど → 必要な勝率は低くて済む（多少負けが込んでも平気）<br>
       ・1回の負けで失う額が大きく、1回の勝ちで得る額が小さいほど → かなり高い勝率がないと割に合わない</p>
-    <p class="sub" style="margin:0 0 10px"><b>考え方：</b>判定期間内のITM日数が指定したしきい値以上のエントリー日を、売りは「負け」・買いは「勝ち」とみなして勝率を算出します。受取/支払いプレミアムと組み合わせて、損益分岐の目安と比較します。</p>
+    <p class="sub" style="margin:0 0 10px"><b>考え方：</b>判定期間内のいずれかの営業日の終値が、権利行使価格から指定した深さ（◯ドル）以上のITMに届いたエントリー日を、売りは「負け」・買いは「勝ち」とみなして勝率を算出します。受取/支払いプレミアムと組み合わせて、損益分岐の目安と比較します。</p>
     <div class="form-row">
       <div class="field">
         <label for="rrVariantSelect" data-target="riskRewardExplain"
@@ -181,11 +181,17 @@ ITMが良い結果か悪い結果かは取引タイプにより異なります�
         <select id="rrVariantSelect"></select>
       </div>
       <div class="field">
-        <label for="rrThresholdInput" data-target="riskRewardExplain"
-          data-note="判定期間内のITM日数がこの日数以上のエントリー日を、売りは「負け」、買いは「勝ち」として勝率を計算します。
-（ITMは買い手に有利、売り手に不利なため）
-判定期間の長さに関わらず、絶対日数として扱います。">ITM日数のしきい値(◯日以上)</label>
-        <input id="rrThresholdInput" type="number" step="1" min="1" max="150" value="4">
+        <label for="rrDepthInput" data-target="riskRewardExplain"
+          data-note="権利行使価格からどれだけ深いITMに届いたら、売りは「負け」・買いは「勝ち」と判断するかを、ドルで入力します。
+プット系は権利行使価格−◯ドル以下、コール系は権利行使価格＋◯ドル以上に、判定期間内のいずれかの営業日の終値が届いたエントリー日が該当します。
+入力したドルは、現在の権利行使価格に対する割合(%)に換算して右隣に表示します。過去の各エントリーにも同じ割合を当てはめて判定します(過去は株価水準が今と違うため、ドルのまま当てはめずに割合にそろえています)。
+空欄(0ドル)なら、一度でもITMになれば該当します。
+(例: プット売りで10ドルを入力すると、権利行使価格より10ドル以上下回った日があれば負け)
+判定は日々の終値のみで、日中の高値・安値は見ていません。">判定する深さ(権利行使価格±◯ドル)</label>
+        <div class="field-inline">
+          <input id="rrDepthInput" type="number" step="0.01" min="0" placeholder="空欄=0ドル">
+          <span class="field-hint" id="rrDepthPct"></span>
+        </div>
       </div>
     </div>
     <div class="form-row">

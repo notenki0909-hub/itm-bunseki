@@ -257,7 +257,7 @@ const CONDITION_WITHIN_DAYS = 7;
  *           conditionMode:'lookback'|'countWithin7', momentumLookback:number,
  *           momentumDirection:'down'|'up', momentumThresholdPct:number, minMatchDays:number}} params
  * @returns {{matchedCount:number, matchedItmCount:number, matchedItmProb:number|null,
- *            matchedTotalItmDays:number, itmDaysList:number[]}}
+ *            matchedTotalItmDays:number, entryIndices:number[]}}
  */
 export function computeConditionalItmAnalysis(closes, params) {
   const {
@@ -272,9 +272,9 @@ export function computeConditionalItmAnalysis(closes, params) {
   let matchedCount = 0;
   let matchedItmCount = 0;
   let matchedTotalItmDays = 0;
-  // 該当日ごとのITM日数の一覧。リスクリワード分析で「ITM日数がしきい値以上の
-  // 該当日」を数え直すために使う(母数は該当日数=matchedCountに固定するため)。
-  const itmDaysList = [];
+  // 該当日のエントリー日インデックスの一覧。リスクリワード分析で、該当日だけを
+  // 対象に「判定する深さに届いたか」を数え直すために使う(母数は該当日数=matchedCount)。
+  const entryIndices = [];
 
   for (let i = startIndex; i + window < n; i++) {
     let matches;
@@ -307,7 +307,7 @@ export function computeConditionalItmAnalysis(closes, params) {
     }
     if (itmAny) matchedItmCount++;
     matchedTotalItmDays += itmDaysInWindow;
-    itmDaysList.push(itmDaysInWindow);
+    entryIndices.push(i);
   }
 
   return {
@@ -315,15 +315,15 @@ export function computeConditionalItmAnalysis(closes, params) {
     matchedItmCount,
     matchedItmProb: matchedCount ? matchedItmCount / matchedCount : null,
     matchedTotalItmDays,
-    itmDaysList,
+    entryIndices,
   };
 }
 
 // ============================================================
 // リスクリワード分析
 // ============================================================
-// 「ITM発生エントリー数の割合」とは別に、ITM日数(判定期間内で判定基準価格に
-// 達していた日数)が指定したしきい値以上かどうかで勝敗を決め、受取/支払い
+// 「ITM発生エントリー数の割合」とは別に、判定期間内の終値が権利行使価格から
+// 指定した深さ以上のITMに届いたかどうかで勝敗を決め、受取/支払い
 // プレミアムと損失額(または獲得すべき利益額)を比較する機能。
 
 // 取引の種類。上部の取引タイプ(OPTION_TYPESのキー)ごとに「単体(naked)」と
@@ -340,23 +340,88 @@ export function isInfiniteLossVariant(typeKey, variant) {
   return typeKey === "call_sell" && variant === "naked";
 }
 
+// 「絞り込みなし」の母集団(分析結果と同じ)のエントリー日インデックス一覧。
+export function baseEntryIndices(closes, window) {
+  const count = Math.max(0, closes.length - window);
+  return Array.from({ length: count }, (_, i) => i);
+}
+
 /**
- * 判定期間内のITM日数の一覧から、指定したしきい値で勝敗を数え、勝率を返す。
- * 売り(group="sell")はITM日数がしきい値以上を「負け」、
- * 買い(group="buy")はITM日数がしきい値以上を「勝ち」として扱う
- * (ITMが有利か不利かは売り/買いで逆になるため)。
+ * 各エントリー日について、判定期間内のいずれかの営業日の終値が「権利行使価格から
+ * depthPct(割合)以上深いITM」に届いたか、届いた場合はその後OTMに戻るまで何営業日
+ * かかったか、を求める。
+ * depthPctが0のときは「一度でもITMになったか」と同じ(ITM発生エントリーと同じ判定)。
+ * 判定は日々の終値のみ(日中の高値・安値は保有していないため見ていない)。
  *
- * @param {number[]} itmDaysList
- * @param {number} threshold ITM日数のしきい値(◯日以上)
- * @param {'sell'|'buy'} group
- * @returns {{total:number, hitCount:number, winRate:number|null}}
+ * @param {number[]} closes
+ * @param {number[]} entryIndices 対象エントリー日のインデックス
+ * @param {{ratio:number, itmWhen:'below'|'above', window:number, depthPct:number}} params
+ * @returns {{reached:boolean, recoveryDays:number|null}[]}
+ *   recoveryDays: 初めて深さに届いた日から、初めてOTMに戻った日までの営業日数。
+ *   判定期間内にOTMに戻らなかった場合はnull。
  */
-export function computeWinRateByItmDays(itmDaysList, threshold, group) {
-  const total = itmDaysList.length;
-  if (total === 0) return { total: 0, hitCount: 0, winRate: null };
-  const hitCount = itmDaysList.filter((d) => d >= threshold).length;
+export function computeDepthEntryResults(closes, entryIndices, params) {
+  const { ratio, itmWhen, window, depthPct } = params;
+  const isBelow = itmWhen === "below";
+  const results = [];
+  for (const i of entryIndices) {
+    const strike = closes[i] * ratio;
+    if (!(strike > 0) || i + window >= closes.length) continue;
+    let reachDay = null;
+    let recoverDay = null;
+    for (let d = 1; d <= window; d++) {
+      const fwd = closes[i + d] / strike - 1;
+      const itm = isBelow ? fwd < 0 : fwd > 0;
+      if (reachDay === null) {
+        const deep = depthPct > 0 ? (isBelow ? fwd <= -depthPct : fwd >= depthPct) : itm;
+        if (deep) reachDay = d;
+      } else if (!itm) {
+        recoverDay = d;
+        break;
+      }
+    }
+    results.push({
+      reached: reachDay !== null,
+      recoveryDays: reachDay !== null && recoverDay !== null ? recoverDay - reachDay : null,
+    });
+  }
+  return results;
+}
+
+/**
+ * computeDepthEntryResultsの結果から、勝率とOTMに戻るまでの日数の統計を求める。
+ * 売り(group="sell")は深さに届いたエントリーを「負け」、
+ * 買い(group="buy")は深さに届いたエントリーを「勝ち」として扱う
+ * (ITMが有利か不利かは売り/買いで逆になるため)。
+ * OTMに戻るまでの日数は参考値で、判定期間内に戻らなかったエントリーは平均・中央値
+ * には含めず、戻らなかった件数として別に数える。
+ *
+ * @param {{reached:boolean, recoveryDays:number|null}[]} results
+ * @param {'sell'|'buy'} group
+ */
+export function summarizeDepthResults(results, group) {
+  const total = results.length;
+  if (total === 0) {
+    return {
+      total: 0, hitCount: 0, winRate: null,
+      recoveredCount: 0, unrecoveredCount: 0, avgRecoveryDays: null, medianRecoveryDays: null,
+    };
+  }
+  const reached = results.filter((r) => r.reached);
+  const hitCount = reached.length;
+  const recovered = reached.filter((r) => r.recoveryDays !== null).map((r) => r.recoveryDays).sort((a, b) => a - b);
+  const recoveredCount = recovered.length;
+  const avgRecoveryDays = recoveredCount ? recovered.reduce((s, v) => s + v, 0) / recoveredCount : null;
+  let medianRecoveryDays = null;
+  if (recoveredCount) {
+    const mid = Math.floor(recoveredCount / 2);
+    medianRecoveryDays = recoveredCount % 2 ? recovered[mid] : (recovered[mid - 1] + recovered[mid]) / 2;
+  }
   const winRate = group === "sell" ? 1 - hitCount / total : hitCount / total;
-  return { total, hitCount, winRate };
+  return {
+    total, hitCount, winRate,
+    recoveredCount, unrecoveredCount: hitCount - recoveredCount, avgRecoveryDays, medianRecoveryDays,
+  };
 }
 
 // 売り系: 受取プレミアムと勝率から、損益分岐となる「許容できる最大損失額」を算出する。

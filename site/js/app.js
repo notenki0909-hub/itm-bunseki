@@ -4,7 +4,8 @@ import {
   MOMENTUM_LOOKBACK_OPTIONS, DEFAULT_MOMENTUM_LOOKBACK,
   computeItmAnalysis, computeConditionalItmAnalysis,
   computeRecentMomentumStrip, computeMomentum, typeGroup, BADGE_LABELS,
-  RISK_VARIANT_LABELS, isInfiniteLossVariant, computeWinRateByItmDays,
+  RISK_VARIANT_LABELS, isInfiniteLossVariant,
+  baseEntryIndices, computeDepthEntryResults, summarizeDepthResults,
   breakEvenMaxLoss, breakEvenMinGain, sampleWarningLevel, expectedProfitOnClose,
   breakEvenWinRateFromLoss,
   VOLATILITY_PERIODS, computeVolatilityStats, computeRecentVolatilityAmount,
@@ -46,7 +47,7 @@ function tabRecipe(t) {
     momentumDirection: t.momentumDirection,
     momentumThresholdPct: t.momentumThresholdPct,
     rrVariant: t.rrVariant,
-    rrThreshold: t.rrThreshold,
+    rrDepth: t.rrDepth,
     rrLossBasis: t.rrLossBasis,
     rrPremium: t.rrPremium,
     rrProfitRatio: t.rrProfitRatio,
@@ -69,7 +70,7 @@ function applyRecipe(t, rec) {
     momentumDirection: rec.momentumDirection || t.momentumDirection,
     momentumThresholdPct: rec.momentumThresholdPct ?? t.momentumThresholdPct,
     rrVariant: rec.rrVariant || t.rrVariant,
-    rrThreshold: rec.rrThreshold ?? t.rrThreshold,
+    rrDepth: rec.rrDepth ?? t.rrDepth,
     rrLossBasis: rec.rrLossBasis ?? t.rrLossBasis,
     rrPremium: rec.rrPremium ?? t.rrPremium,
     rrProfitRatio: rec.rrProfitRatio ?? t.rrProfitRatio,
@@ -257,7 +258,8 @@ const els = {
 
   riskRewardCard: document.getElementById("riskRewardCard"),
   rrVariantSelect: document.getElementById("rrVariantSelect"),
-  rrThresholdInput: document.getElementById("rrThresholdInput"),
+  rrDepthInput: document.getElementById("rrDepthInput"),
+  rrDepthPct: document.getElementById("rrDepthPct"),
   rrLossBasisInput: document.getElementById("rrLossBasisInput"),
   rrLossBasisLabel: document.getElementById("rrLossBasisLabel"),
   rrPremiumInput: document.getElementById("rrPremiumInput"),
@@ -297,7 +299,7 @@ function newTabState() {
     momentumDirection: "down",
     momentumThresholdPct: 5,
     rrVariant: "naked",
-    rrThreshold: 4,
+    rrDepth: null,
     rrLossBasis: null,
     rrPremium: null,
     rrProfitRatio: null,
@@ -349,7 +351,7 @@ function switchTab(id) {
 
   initRiskRewardVariantOptions(t.typeKey);
   els.rrVariantSelect.value = t.rrVariant;
-  els.rrThresholdInput.value = t.rrThreshold;
+  els.rrDepthInput.value = t.rrDepth ?? "";
   els.rrLossBasisInput.value = t.rrLossBasis ?? "";
   els.rrPremiumInput.value = t.rrPremium ?? "";
   els.rrProfitRatioInput.value = t.rrProfitRatio ?? "";
@@ -503,7 +505,7 @@ function onFormChange() {
     els.rrVariantSelect.value = t.rrVariant;
   }
   t.rrVariant = els.rrVariantSelect.value;
-  t.rrThreshold = Number(els.rrThresholdInput.value) || 1;
+  t.rrDepth = els.rrDepthInput.value === "" ? null : Math.max(0, Number(els.rrDepthInput.value));
   t.rrLossBasis = els.rrLossBasisInput.value === "" ? null : Number(els.rrLossBasisInput.value);
   t.rrPremium = els.rrPremiumInput.value === "" ? null : Number(els.rrPremiumInput.value);
   t.rrProfitRatio = els.rrProfitRatioInput.value === "" ? null : Number(els.rrProfitRatioInput.value);
@@ -841,17 +843,23 @@ function renderCutLossSection(t, { group, infinite, premiumForBreakEven, baseWin
 
 function renderRiskReward(t) {
   const closes = periodClosesOf(t);
-  const dates = periodDatesOf(t);
   const type = OPTION_TYPES[t.typeKey];
   const group = typeGroup(t.typeKey);
   const infinite = isInfiniteLossVariant(t.typeKey, t.rrVariant);
 
+  // 判定する深さ(ドル)を、現在の権利行使価格に対する割合に換算し、過去の各エントリーにも
+  // 同じ割合を当てはめる(過去の株価水準が今と違っても公平に比べられるようにするため)。
+  const depthDollar = t.rrDepth ?? 0;
+  const todayStrike = closes[closes.length - 1] * t.ratio;
+  const depthPct = todayStrike > 0 ? depthDollar / todayStrike : 0;
+  els.rrDepthPct.textContent = depthDollar > 0
+    ? `＝ 権利行使価格の約${(depthPct * 100).toFixed(2)}%（現在の権利行使価格${todayStrike.toFixed(2)}に対して）`
+    : "＝ 0%（一度でもITMになれば該当）";
+  const depthParams = { ratio: t.ratio, itmWhen: type.itmWhen, window: t.windowDays, depthPct };
+
   // 母集団1: 絞り込みなし(「分析結果」と同じ母集団)
-  const baseAnalysis = computeItmAnalysis(closes, {
-    ratio: t.ratio, itmWhen: type.itmWhen, window: t.windowDays, group,
-  }, dates);
-  const baseItmDaysList = baseAnalysis.perEntry.map((e) => e.itmDaysInWindow);
-  const baseWin = computeWinRateByItmDays(baseItmDaysList, t.rrThreshold, group);
+  const baseWin = summarizeDepthResults(
+    computeDepthEntryResults(closes, baseEntryIndices(closes, t.windowDays), depthParams), group);
 
   // 母集団2: エントリー条件で絞り込みあり(分母は絞り込み後の該当日数)
   const conditional = computeConditionalItmAnalysis(closes, {
@@ -860,7 +868,8 @@ function renderRiskReward(t) {
     minMatchDays: t.minMatchDays, momentumDirection: t.momentumDirection,
     momentumThresholdPct: t.momentumThresholdPct,
   });
-  const condWin = computeWinRateByItmDays(conditional.itmDaysList, t.rrThreshold, group);
+  const condWin = summarizeDepthResults(
+    computeDepthEntryResults(closes, conditional.entryIndices, depthParams), group);
 
   // 実際の最大損失額。売りは(権利行使価格 or スプレッド幅)−受取プレミアム(満期まで
   // 保有した場合の最悪ケースなので利確割合は関係しない)、買いは支払いプレミアムそのもの。
@@ -895,7 +904,7 @@ function renderRiskReward(t) {
 
 // リスクリワード分析の1ブロック(絞り込みなし/絞り込みあり、それぞれ)を描画する。
 function renderRiskRewardBlock(summaryEl, warningEl, { group, infinite, winInfo, actualMaxLoss, premiumForBreakEven, isBase }) {
-  const { total, winRate } = winInfo;
+  const { total, winRate, hitCount, recoveredCount, unrecoveredCount, avgRecoveryDays, medianRecoveryDays } = winInfo;
   const winRateText = winRate === null ? "―" : (winRate * 100).toFixed(1) + "%";
   const maxLossText = infinite ? "無限大" : (actualMaxLoss === null ? "―" : actualMaxLoss.toFixed(2));
   const T = "riskRewardExplain";
@@ -938,8 +947,8 @@ function renderRiskRewardBlock(summaryEl, warningEl, { group, infinite, winInfo,
 
   const winRateLabel = group === "sell" ? "勝率(負けない確率)" : "勝率(ITMを勝ちとした確率)";
   const winRateNote = group === "sell"
-    ? "判定期間内のITM日数がしきい値未満だった(負けなかった)エントリー日の割合です。\n売りはITMが少ないほど有利なため「負けない確率」と表現しています。"
-    : "判定期間内のITM日数がしきい値以上だった(勝った)エントリー日の割合です。\n買いはITMが多いほど有利なため「ITMを勝ちとした確率」と表現しています。";
+    ? "判定期間内のどの営業日の終値も、設定した深さ(権利行使価格±◯ドル)に届かなかった(負けなかった)エントリー日の割合です。\n売りは深いITMになるほど不利なため「負けない確率」と表現しています。\n深さが空欄(0ドル)なら「一度もITMにならなかった割合」になります。"
+    : "判定期間内のいずれかの営業日の終値が、設定した深さ(権利行使価格±◯ドル)に届いた(勝った)エントリー日の割合です。\n買いはITMが深いほど有利なため「ITMを勝ちとした確率」と表現しています。\n深さが空欄(0ドル)なら「一度でもITMになった割合」になります。";
   const winRateSub = isBase ? "いつエントリーしてもこの勝率" : null;
   const maxLossNote = infinite
     ? "コール売り(単体)は株価に上限がないため、理論上損失は無限大になり得ます。"
@@ -962,6 +971,24 @@ function renderRiskRewardBlock(summaryEl, warningEl, { group, infinite, winInfo,
       note: "受取プレミアム額×利確割合。\n反対売買(買い戻し)で決済する際、買い戻しコストを差し引いて実際に手元に残る利益の見込み額です。\n(利確割合が未入力の場合は受取プレミアム額そのもの＝100%として計算しています)",
     });
   }
+  const avgText = avgRecoveryDays === null ? "―" : avgRecoveryDays.toFixed(1) + "日";
+  const avgSub = avgRecoveryDays === null
+    ? (hitCount > 0 ? "OTMに戻ったエントリーなし" : "深さに届いたエントリーなし")
+    : `中央値${Number.isInteger(medianRecoveryDays) ? medianRecoveryDays : medianRecoveryDays.toFixed(1)}日・戻った${recoveredCount}件の平均`;
+  const recoveryNote = group === "sell"
+    ? "設定した深さに初めて届いた日から、初めてOTMに戻った日までの営業日数の平均です(参考値)。\n「深さに届いても、平均で◯日待てばOTMに戻る」という目安になり、売り建玉を持ち続けて待つ判断の材料になります。\n期間内にOTMに戻らなかったエントリーは平均・中央値に含めていません。右の「OTMに戻らなかった割合」と合わせて見てください。\n勝率や判定の計算には使っていません。"
+    : "設定した深さに初めて届いた日から、初めてOTMに戻った日までの営業日数の平均です(参考値)。\n買いでは「利益が出る深さに届いた後、平均で何日その状態が続いたか(OTMに戻るまで)」という意味になります。\n期間内にOTMに戻らなかったエントリーは平均・中央値に含めていません。\n勝率や判定の計算には使っていません。";
+  const unrecoveredRate = hitCount > 0 ? (unrecoveredCount / hitCount * 100).toFixed(1) + "%" : "―";
+  const unrecoveredNote = group === "sell"
+    ? "設定した深さに届いたエントリーのうち、判定期間の最終日までOTMに戻らなかった割合です(参考値)。\n「待てば戻る」とは言えなかったケースの割合で、この割合が高いと、待つ戦略は危険です。"
+    : "設定した深さに届いたエントリーのうち、判定期間の最終日までOTMに戻らなかった(ITMのまま終わった)割合です(参考値)。";
+  items.push({
+    label: "OTMに戻るまでの平均日数(参考)", value: avgText, note: recoveryNote, sub: avgSub,
+  });
+  items.push({
+    label: "OTMに戻らなかった割合(参考)", value: unrecoveredRate, note: unrecoveredNote,
+    sub: hitCount > 0 ? `${unrecoveredCount}件/${hitCount}件` : null,
+  });
   items.push({
     label: breakEvenLabel,
     value: breakEvenValue === null ? "―" : (Number.isFinite(breakEvenValue) ? breakEvenValue.toFixed(2) : "無限大"),
@@ -1056,7 +1083,7 @@ function init() {
   els.momentumDirectionSelect.addEventListener("change", onFormChange);
   els.momentumThresholdInput.addEventListener("input", debounce(onFormChange, 250));
   els.rrVariantSelect.addEventListener("change", onFormChange);
-  els.rrThresholdInput.addEventListener("input", debounce(onFormChange, 250));
+  els.rrDepthInput.addEventListener("input", debounce(onFormChange, 250));
   els.rrLossBasisInput.addEventListener("input", debounce(onFormChange, 250));
   els.rrPremiumInput.addEventListener("input", debounce(onFormChange, 250));
   els.rrProfitRatioInput.addEventListener("input", debounce(onFormChange, 250));
