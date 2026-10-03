@@ -90,7 +90,15 @@ h1{font-size:20px;margin:0 0 4px}
   color:var(--muted);font-size:13px;cursor:pointer}
 .tab-add:hover{color:var(--accent);border-color:var(--accent)}
 
-.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:16px;margin-bottom:16px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:16px;margin-bottom:16px;position:relative}
+/* 各エリア(カード)の開く/閉じるボタン。閉じているときは見出し行(.card-head)だけを残す。 */
+.card-toggle{position:absolute;top:12px;right:14px;padding:3px 12px;font-size:12px;border-radius:999px;
+  background:var(--field);color:var(--fg);border:1px solid var(--line);cursor:pointer}
+.card-toggle:hover{border-color:var(--accent);color:var(--accent)}
+.card-head{padding-right:72px}
+.card.collapsed > :not(.card-head):not(.card-toggle){display:none}
+.card.collapsed .card-head .explain-box{display:none}
+.card.collapsed > .card-head{margin-bottom:0 !important}
 .form-row{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end;margin-bottom:12px}
 .field{display:flex;flex-direction:column;gap:4px}
 .field[hidden]{display:none}

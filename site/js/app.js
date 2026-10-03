@@ -1407,8 +1407,40 @@ function setupStatExplain() {
   });
 }
 
+// 各エリア(カード)の見出しの右上に「閉じる/開く」ボタンを付ける。閉じると見出し行だけを残して
+// 折りたたむ。開閉の状態はブラウザに保存し、次回開いたときも引き継ぐ(全タブ共通)。
+const COLLAPSE_KEY = "itm-tool-collapsed-v1";
+function setupCollapsibleCards() {
+  let saved = {};
+  try { saved = JSON.parse(localStorage.getItem(COLLAPSE_KEY) || "{}") || {}; } catch (e) { saved = {}; }
+  ["volatilityCard", "result", "orderCard", "conditionCard", "riskRewardCard"].forEach((id) => {
+    const card = document.getElementById(id);
+    if (!card) return;
+    const head = card.querySelector(":scope > .result-head, :scope > .order-head") || card.querySelector(":scope > h2");
+    if (!head) return;
+    head.classList.add("card-head");
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "card-toggle";
+    const apply = (collapsed) => {
+      card.classList.toggle("collapsed", collapsed);
+      btn.textContent = collapsed ? "開く" : "閉じる";
+      btn.setAttribute("aria-expanded", String(!collapsed));
+    };
+    apply(!!saved[id]);
+    btn.addEventListener("click", () => {
+      const collapsed = !card.classList.contains("collapsed");
+      apply(collapsed);
+      saved[id] = collapsed;
+      try { localStorage.setItem(COLLAPSE_KEY, JSON.stringify(saved)); } catch (e) { /* 保存できなくても動作に支障はない */ }
+    });
+    card.appendChild(btn);
+  });
+}
+
 function init() {
   initThemeBar("theme-bar");
+  setupCollapsibleCards();
   initTypeOptions();
   initWindowOptions();
   initPeriodOptions();
