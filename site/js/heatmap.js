@@ -67,7 +67,7 @@ export function renderEntryHeatmap(perEntry, window, group, depthLabel = "") {
     const cells = entries.map(({ date, itmDaysInWindow }) => {
       const dateLabel = date || "―";
       const title = `${dateLabel}: 判定期間${window}日中${itmDaysInWindow}日ITM${depthLabel}`;
-      return `<div class="hm-cell" style="background:${cellColor(itmDaysInWindow, group)}" title="${title}"></div>`;
+      return `<div class="hm-cell hm-click" style="background:${cellColor(itmDaysInWindow, group)}" data-tip="${title}"></div>`;
     }).join("");
     const label = yearMonth ? monthLabel(yearMonth) : "―";
     // 1ヶ月の最大営業日数は23日程度なので、5×5(25マス)の正方形に収まる。
@@ -78,7 +78,7 @@ export function renderEntryHeatmap(perEntry, window, group, depthLabel = "") {
 }
 
 // 最大ITM深さ・最大OTM深さのそれぞれについて、最大になった日と「エントリーから何営業日後か」を、
-// マウスオーバー用の文章にする(どちらが先に起きたかを見るため。両方のヒートマップで同じ文章を出す)。
+// マスをクリックしたときに出す文章にする(どちらが先に起きたかを見るため。両方のヒートマップで同じ文章を出す)。
 function extremesText(entry, todayStrike) {
   const dollar = (pct) => (pct * todayStrike).toFixed(2);
   const part = (label, pct, day, date) => (pct > 0 && day > 0
@@ -140,7 +140,7 @@ export function renderDepthHeatmap(perEntry, window, group, opts) {
       const marked = depthPct > 0 && maxDepthPct >= depthPct - 1e-12;
       let title = `${dateLabel}（判定期間${window}日中）: ${extremesText(entry, todayStrike)}`;
       if (marked) title += `／判定する深さ(${depthDollar}ドル)に届きました`;
-      return `<div class="hm-cell${marked ? " hm-mark" : ""}" style="background:${depthColor(maxDepthPct, group)}" title="${title}"></div>`;
+      return `<div class="hm-cell hm-click${marked ? " hm-mark" : ""}" style="background:${depthColor(maxDepthPct, group)}" data-tip="${title}"></div>`;
     }).join("");
     const label = yearMonth ? monthLabel(yearMonth) : "―";
     return `<div class="hm-month"><div class="hm-month-label">${label}</div><div class="hm-grid hm-grid-5x5">${cells}</div></div>`;
@@ -195,7 +195,7 @@ export function renderOtmHeatmap(perEntry, window, group, opts) {
       const { date, maxOtmPct } = entry;
       const dateLabel = date || "―";
       const title = `${dateLabel}（判定期間${window}日中）: ${extremesText(entry, todayStrike)}`;
-      return `<div class="hm-cell" style="background:${otmColor(maxOtmPct, group)}" title="${title}"></div>`;
+      return `<div class="hm-cell hm-click" style="background:${otmColor(maxOtmPct, group)}" data-tip="${title}"></div>`;
     }).join("");
     const label = yearMonth ? monthLabel(yearMonth) : "―";
     return `<div class="hm-month"><div class="hm-month-label">${label}</div><div class="hm-grid hm-grid-5x5">${cells}</div></div>`;

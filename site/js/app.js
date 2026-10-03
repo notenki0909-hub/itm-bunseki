@@ -745,6 +745,7 @@ function renderMainAnalysis(t) {
   els.chartWrap.innerHTML = renderDayProbChart(analysis.dayProb, group);
   els.heatmapWrap.innerHTML = renderEntryHeatmap(analysis.perEntry, t.windowDays, group,
     depthDollar > 0 ? `(${depthDollar}ドル以上)` : "");
+  hideCellTip();
   renderDepthRisk(t, analysis, depthDollar, group);
   els.badgeLegend.innerHTML = renderBadgeLegend(group);
   els.dayProbLegend.innerHTML = renderColorLegend(DAY_PROB_BANDS[group]);
@@ -1450,6 +1451,42 @@ function setupStatExplain() {
 
 // 各エリア(カード)の見出しの右上に「閉じる/開く」ボタンを付ける。閉じると見出し行だけを残して
 // 折りたたむ。開閉の状態はブラウザに保存し、次回開いたときも引き継ぐ(全タブ共通)。
+// ヒートマップのマスをクリックすると、そのマスの説明(日付・深さなど。マスのdata-tip)を吹き出しで表示する。
+// 別のマスをクリックするとそちらに移り、マス以外の場所をクリックする(またはEscを押す)と消える。
+// (以前はマウスを乗せると表示するtitle属性だったが、クリック操作に変更した。スマホのタップにも対応する)
+let cellTipEl = null;
+let cellTipTarget = null;
+function hideCellTip() {
+  if (cellTipEl) cellTipEl.hidden = true;
+  if (cellTipTarget) cellTipTarget.classList.remove("hm-tip-active");
+  cellTipTarget = null;
+}
+function setupCellTip() {
+  cellTipEl = document.createElement("div");
+  cellTipEl.className = "cell-tip";
+  cellTipEl.hidden = true;
+  document.body.appendChild(cellTipEl);
+  document.addEventListener("click", (e) => {
+    const cell = e.target.closest && e.target.closest(".hm-cell[data-tip]");
+    if (!cell) {
+      if (!cellTipEl.contains(e.target)) hideCellTip();
+      return;
+    }
+    if (cell === cellTipTarget) { hideCellTip(); return; }
+    hideCellTip();
+    cellTipTarget = cell;
+    cell.classList.add("hm-tip-active");
+    cellTipEl.textContent = cell.dataset.tip;
+    cellTipEl.hidden = false;
+    const r = cell.getBoundingClientRect();
+    const w = cellTipEl.offsetWidth;
+    const left = Math.max(8, Math.min(r.left + window.scrollX, window.scrollX + document.documentElement.clientWidth - w - 8));
+    cellTipEl.style.left = `${left}px`;
+    cellTipEl.style.top = `${r.bottom + window.scrollY + 6}px`;
+  });
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape") hideCellTip(); });
+}
+
 const COLLAPSE_KEY = "itm-tool-collapsed-v1";
 function setupCollapsibleCards() {
   let saved = {};
@@ -1482,6 +1519,7 @@ function setupCollapsibleCards() {
 function init() {
   initThemeBar("theme-bar");
   setupCollapsibleCards();
+  setupCellTip();
   initTypeOptions();
   initWindowOptions();
   initPeriodOptions();
