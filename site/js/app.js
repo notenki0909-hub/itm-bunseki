@@ -270,6 +270,7 @@ const els = {
   rrLossBasisInput: document.getElementById("rrLossBasisInput"),
   rrLossBasisLabel: document.getElementById("rrLossBasisLabel"),
   rrLossBasisField: document.getElementById("rrLossBasisField"),
+  rrProfitRatioField: document.getElementById("rrProfitRatioField"),
   rrPremiumLabel: document.getElementById("rrPremiumLabel"),
   rrPremiumInput: document.getElementById("rrPremiumInput"),
   rrProfitRatioInput: document.getElementById("rrProfitRatioInput"),
@@ -733,7 +734,9 @@ function updateRiskRewardInputUI(typeKey, variant) {
   // 買い系は損失額＝支払いプレミアム額そのもの(上部のプレミアム額入力)なので、損失額入力欄は不要。
   els.rrLossBasisField.hidden = group === "buy";
   els.rrPremiumLabel.textContent = group === "buy" ? "支払いプレミアム額" : "受取プレミアム額";
-  els.rrProfitRatioInput.disabled = group === "buy";
+  // 利確割合は売り系のみ。同じ位置に、買い系では「見越し最大利益額」を表示する(切替は
+  // updateCutLossInputUIのrrExpectedGainField側)。
+  els.rrProfitRatioField.hidden = group === "buy";
 
   if (infinite) {
     els.rrLossBasisLabel.textContent = "損失額(無限大)";

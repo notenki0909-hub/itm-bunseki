@@ -42,13 +42,23 @@
 （買い系は支払いプレミアム額がそのまま最大損失額になります）"><span id="rrPremiumLabel">受取プレミアム額</span></label>
         <input id="rrPremiumInput" type="number" step="0.01" min="0" placeholder="例: 1.20">
       </div>
-      <div class="field">
+      <div class="field" id="rrProfitRatioField">
         <label for="rrProfitRatioInput" data-target="riskRewardExplain"
           data-note="注文時の条件です(売り系のみ)。反対売買（買い戻し）で決済する場合、買い戻しにも費用がかかるため、実際に手元に残る利益は受取プレミアムの一部にとどまります。
 受け取ったプレミアムのうち何%を利益として確定させるかを入力してください。
 （未入力の場合は100%＝満期まで保有して受取プレミアムを丸々得たものとして計算します）
-買い系を選んでいる間は使わないため入力できません。">利確割合(%)</label>
+買い系では表示されず、代わりに「見越し最大利益額」を入力します。">利確割合(%)</label>
         <input id="rrProfitRatioInput" type="number" step="1" min="0" max="100" placeholder="未入力=100%">
+      </div>
+      <div class="field" id="rrExpectedGainField" hidden>
+        <label for="rrExpectedGainInput" data-target="riskRewardExplain"
+          data-note="注文時の条件です(買い系のみ)。このトレードで見込んでいる最大利益額を入力します。
+買い系は利益額が変動し追跡していないため、ご自身の見込みを入力してください。
+コール買い単体は上限なし、スプレッド買いはスプレッド幅−支払いプレミアム額が理論上の上限です。
+（プット買い単体も理論上は権利行使価格−支払いプレミアム額が上限ですが、このツールでは権利行使価格の絶対値を入力していないため、自動での上限チェックはしていません）
+（スプレッド買いで超える入力をした場合、欄から離れると自動的に上限値に調整されます）">見越し最大利益額</label>
+        <input id="rrExpectedGainInput" type="number" step="0.01" min="0" placeholder="例: 8.00">
+        <span class="field-warn" id="rrExpectedGainWarning" hidden></span>
       </div>
       <button id="analyzeBtn" type="button">分析する</button>
     </div>
@@ -239,7 +249,7 @@ ITMが良い結果か悪い結果かは取引タイプにより異なります�
     <div id="rrCondWarning" class="disc" style="margin-top:8px" hidden></div>
 
     <h3 style="margin:18px 0 8px;font-size:14px">損切額から損益分岐を確認</h3>
-    <p class="sub" style="margin:0 0 10px">実際に損切りするつもりの金額（買い系は見越している最大利益額も）を入力すると、損益分岐に必要なITM発生率（勝率に換算した値も併記）を算出し、上の実績のITM発生率と比較します。</p>
+    <p class="sub" style="margin:0 0 10px">実際に損切りするつもりの金額を入力すると（買い系は、上部の入力欄の見越し最大利益額も使います）、損益分岐に必要なITM発生率（勝率に換算した値も併記）を算出し、上の実績のITM発生率と比較します。</p>
     <div class="form-row">
       <div class="field" id="rrSpreadWidthField" hidden>
         <label for="rrSpreadWidthInput" data-target="riskRewardExplain"
@@ -247,16 +257,6 @@ ITMが良い結果か悪い結果かは取引タイプにより異なります�
 見越し最大利益額の理論上の上限(スプレッド幅−支払いプレミアム額)を計算するためだけに使用します。
 実際の最大損失額(＝支払いプレミアム額)の計算には影響しません。">権利行使価格の差額(スプレッド幅)</label>
         <input id="rrSpreadWidthInput" type="number" step="0.01" min="0" placeholder="例: 10.00">
-      </div>
-      <div class="field" id="rrExpectedGainField" hidden>
-        <label for="rrExpectedGainInput" data-target="riskRewardExplain"
-          data-note="このトレードで見込んでいる最大利益額を入力します。
-買い系は利益額が変動し追跡していないため、ご自身の見込みを入力してください。
-コール買い単体は上限なし、スプレッド買いはスプレッド幅−支払いプレミアム額が理論上の上限です。
-（プット買い単体も理論上は権利行使価格−支払いプレミアム額が上限ですが、このツールでは権利行使価格の絶対値を入力していないため、自動での上限チェックはしていません）
-（スプレッド買いで超える入力をした場合、欄から離れると自動的に上限値に調整されます）">見越し最大利益額</label>
-        <input id="rrExpectedGainInput" type="number" step="0.01" min="0" placeholder="例: 8.00">
-        <span class="field-warn" id="rrExpectedGainWarning" hidden></span>
       </div>
       <div class="field">
         <label for="rrCutLossInput" data-target="riskRewardExplain"
