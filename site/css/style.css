@@ -128,7 +128,11 @@ body[data-mode="sp"] [data-only="naked"]{display:none}
 .ticker-dropdown[hidden]{display:none}
 .ticker-dropdown-item{padding:8px 12px;font-size:14px;cursor:pointer;text-transform:uppercase}
 .ticker-dropdown-item:hover{background:var(--field);color:var(--accent)}
-#ratioInput{width:90px}
+#ratioInput,#orderRatioInput{width:90px}
+/* 金額・割合の入力欄は、入力する数値に見合った幅にする(ブラウザ標準の幅は広すぎるため) */
+#rrPremiumInput,#rrPayPremiumInput,#rrSpreadWidthInput,#rrCutLossInput,#rrCutLossInputM,
+#rrExpectedGainInput,#rrExpectedGainInputM{width:100px;box-sizing:border-box}
+#rrDepthInput,#orderDepthInput,#rrProfitRatioInput,#rrProfitRatioInputM{width:120px;box-sizing:border-box}
 #minMatchDaysInput,#momentumThresholdInput{width:70px}
 button{padding:9px 18px;border:1px solid var(--accent);border-radius:8px;
   background:var(--accent);color:#fff;font-size:14px;cursor:pointer}

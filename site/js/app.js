@@ -855,12 +855,26 @@ function refreshExpectedGainField(t) {
     if (!focused) el.value = t.rrExpectedGain;
   }
   const isCallSingle = t.rrVariant !== "spread" && t.typeKey === "call_buy";
+  // 欄の幅を広げないよう表示は短くし、詳しい説明はtitle(マウスを乗せると表示)とラベルの説明に置く。
   let hint = "";
-  if (isCallSingle) hint = "上限なし(コール買いは理論上の最大利益額がありません)";
-  else if (gainCap === null) hint = "プレミアム額(・差額)を入力すると、理論上の最大利益額が自動入力されます";
-  else if (el.dataset.auto) hint = `自動入力: 理論上の最大利益額 ${gainCap.toFixed(2)}（これを超える額は入力できません）`;
-  else hint = `理論上の最大利益額 ${gainCap.toFixed(2)} まで入力できます（空欄にすると自動入力に戻ります）`;
-  document.querySelectorAll('[data-hint="rrExpectedGain"]').forEach((h) => { h.textContent = hint; });
+  let hintTitle = "";
+  if (isCallSingle) {
+    hint = "上限なし";
+    hintTitle = "コール買いは理論上の最大利益額がないため、自動入力はありません。ご自身の見込みを入力してください。";
+  } else if (gainCap === null) {
+    hint = "自動入力待ち";
+    hintTitle = "プレミアム額(・権利行使価格の差額)を入力すると、理論上の最大利益額が自動入力されます。";
+  } else if (el.dataset.auto) {
+    hint = "自動入力（理論上の最大）";
+    hintTitle = `理論上の最大利益額 ${gainCap.toFixed(2)} が自動入力されています。これを超える額は入力できません。`;
+  } else {
+    hint = `上限 ${gainCap.toFixed(2)}（空欄で自動）`;
+    hintTitle = `理論上の最大利益額 ${gainCap.toFixed(2)} まで入力できます。空欄にすると自動入力に戻ります。`;
+  }
+  document.querySelectorAll('[data-hint="rrExpectedGain"]').forEach((h) => {
+    h.textContent = hint;
+    h.title = hintTitle;
+  });
   syncMirrors();
 }
 
