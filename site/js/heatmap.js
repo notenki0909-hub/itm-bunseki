@@ -77,6 +77,16 @@ export function renderEntryHeatmap(perEntry, window, group, depthLabel = "") {
   return `<div class="hm-months">${blocks}</div>`;
 }
 
+// 最大ITM深さ・最大OTM深さのそれぞれについて、最大になった日と「エントリーから何営業日後か」を、
+// マウスオーバー用の文章にする(どちらが先に起きたかを見るため。両方のヒートマップで同じ文章を出す)。
+function extremesText(entry, todayStrike) {
+  const dollar = (pct) => (pct * todayStrike).toFixed(2);
+  const part = (label, pct, day, date) => (pct > 0 && day > 0
+    ? `${label} ${(pct * 100).toFixed(1)}%（約${dollar(pct)}ドル。${date || "―"}、エントリーから${day}営業日後）`
+    : `${label}なし`);
+  return `${part("最大ITM深さ", entry.maxDepthPct, entry.maxDepthDay, entry.maxDepthDate)}／${part("最大OTM深さ", entry.maxOtmPct, entry.maxOtmDay, entry.maxOtmDate)}`;
+}
+
 // ---- エントリー日ごとの「最大ITM深さ」ヒートマップ ----
 // 判定期間内の終値が、権利行使価格から最も深く入った割合(%)を色で表す。日数ではなく深さを見るので、
 // 「一瞬だけ深く入った日」と「浅いまま長く続いた日」を区別できる。売りは深いほど不利(寒色→紫)、
@@ -124,15 +134,11 @@ export function renderDepthHeatmap(perEntry, window, group, opts) {
   const { depthPct = 0, depthDollar = 0, todayStrike = 0 } = opts || {};
   const months = groupByMonth(perEntry);
   const blocks = months.map(({ yearMonth, entries }) => {
-    const cells = entries.map(({ date, maxDepthPct }) => {
+    const cells = entries.map((entry) => {
+      const { date, maxDepthPct } = entry;
       const dateLabel = date || "―";
       const marked = depthPct > 0 && maxDepthPct >= depthPct - 1e-12;
-      let title;
-      if (!(maxDepthPct > 0)) {
-        title = `${dateLabel}: 判定期間${window}日中、ITMになりませんでした`;
-      } else {
-        title = `${dateLabel}: 判定期間${window}日中の最大深さ ${(maxDepthPct * 100).toFixed(1)}%（現在の権利行使価格に換算すると約${(maxDepthPct * todayStrike).toFixed(2)}ドル）`;
-      }
+      let title = `${dateLabel}（判定期間${window}日中）: ${extremesText(entry, todayStrike)}`;
       if (marked) title += `／判定する深さ(${depthDollar}ドル)に届きました`;
       return `<div class="hm-cell${marked ? " hm-mark" : ""}" style="background:${depthColor(maxDepthPct, group)}" title="${title}"></div>`;
     }).join("");
@@ -185,11 +191,10 @@ export function renderOtmHeatmap(perEntry, window, group, opts) {
   const { todayStrike = 0 } = opts || {};
   const months = groupByMonth(perEntry);
   const blocks = months.map(({ yearMonth, entries }) => {
-    const cells = entries.map(({ date, maxOtmPct }) => {
+    const cells = entries.map((entry) => {
+      const { date, maxOtmPct } = entry;
       const dateLabel = date || "―";
-      const title = !(maxOtmPct > 0)
-        ? `${dateLabel}: 判定期間${window}日中、OTMになりませんでした`
-        : `${dateLabel}: 判定期間${window}日中の最大OTM深さ ${(maxOtmPct * 100).toFixed(1)}%（現在の権利行使価格に換算すると約${(maxOtmPct * todayStrike).toFixed(2)}ドル）`;
+      const title = `${dateLabel}（判定期間${window}日中）: ${extremesText(entry, todayStrike)}`;
       return `<div class="hm-cell" style="background:${otmColor(maxOtmPct, group)}" title="${title}"></div>`;
     }).join("");
     const label = yearMonth ? monthLabel(yearMonth) : "―";

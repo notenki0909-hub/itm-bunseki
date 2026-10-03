@@ -168,6 +168,8 @@ export function favorableProbToLevel(favorableProb, group) {
  *   perEntry:{date:string|null, itmDaysInWindow:number, maxDepthPct:number}[]
  *     maxDepthPct: 判定期間内の終値が権利行使価格から最も深く入った割合(0=一度もITMにならなかった)
  *     maxOtmPct: 逆に、権利行使価格から最も深くOTM(ITMの反対側)になった割合(0=一度もOTMにならなかった)
+ *     maxDepthDay/maxOtmDay(と、その日付maxDepthDate/maxOtmDate): それぞれの最大になった日(エントリーから何営業日後か。
+ *       最初にその値になった日)。どちらが先に起きたかを見るために使う
  * }}
  */
 export function computeItmAnalysis(closes, params, dates) {
@@ -189,11 +191,13 @@ export function computeItmAnalysis(closes, params, dates) {
     let itmDaysInWindow = 0;
     let maxDepthPct = 0;
     let maxOtmPct = 0;
+    let maxDepthDay = 0; // 最大ITM深さになった日(エントリーから何営業日後か。最初にその値になった日)
+    let maxOtmDay = 0;
     for (let d = 1; d <= window; d++) {
       const fwd = closes[i + d] / strike - 1;
       const depthNow = isBelow ? -fwd : fwd;
-      if (depthNow > maxDepthPct) maxDepthPct = depthNow;
-      if (-depthNow > maxOtmPct) maxOtmPct = -depthNow;
+      if (depthNow > maxDepthPct) { maxDepthPct = depthNow; maxDepthDay = d; }
+      if (-depthNow > maxOtmPct) { maxOtmPct = -depthNow; maxOtmDay = d; }
       const itm = depthPct > 0
         ? (isBelow ? fwd <= -depthPct : fwd >= depthPct)
         : (isBelow ? fwd < 0 : fwd > 0);
@@ -205,7 +209,12 @@ export function computeItmAnalysis(closes, params, dates) {
     }
     if (itmDaysInWindow > 0) entriesItmWithinWindow++;
     totalItmDays += itmDaysInWindow;
-    perEntry.push({ date: dates ? dates[i] : null, itmDaysInWindow, maxDepthPct, maxOtmPct });
+    perEntry.push({
+      date: dates ? dates[i] : null, itmDaysInWindow, maxDepthPct, maxOtmPct,
+      maxDepthDay, maxOtmDay,
+      maxDepthDate: dates && maxDepthDay ? dates[i + maxDepthDay] : null,
+      maxOtmDate: dates && maxOtmDay ? dates[i + maxOtmDay] : null,
+    });
   }
 
   const dayProb = [];
