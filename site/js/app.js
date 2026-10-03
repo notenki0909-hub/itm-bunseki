@@ -822,8 +822,13 @@ function renderCutLossSection(t, { group, infinite, premiumForBreakEven, baseWin
   const loss = t.rrCutLoss;
   const neededWinRate = breakEvenWinRateFromLoss(gain, loss);
 
-  const neededText = neededWinRate === null ? "―" : (neededWinRate * 100).toFixed(1) + "%";
-  const neededSub = neededWinRate === null ? null : tenTrialText(neededWinRate);
+  // 主表示は実績と同じ向きの「損益分岐ITM発生率」(売りは1−損益分岐勝率、買いは損益分岐勝率と同値)。
+  // 損益分岐勝率は判定に使う値なので、サブ表示で併記する。
+  const neededWinText = neededWinRate === null ? "―" : (neededWinRate * 100).toFixed(1) + "%";
+  const neededItmRate = neededWinRate === null ? null : (group === "sell" ? 1 - neededWinRate : neededWinRate);
+  const neededText = neededItmRate === null ? "―" : (neededItmRate * 100).toFixed(1) + "%";
+  const neededSub = neededWinRate === null ? null
+    : `ITM発生率が${neededText}${group === "sell" ? "以下" : "以上"}なら有利<br>損益分岐勝率 ${neededWinText}（${tenTrialText(neededWinRate)}）`;
 
   function verdictItem(label, winInfo) {
     const actual = winInfo.winRate;
@@ -840,18 +845,19 @@ function renderCutLossSection(t, { group, infinite, premiumForBreakEven, baseWin
   const T = "riskRewardExplain";
   const items = [
     {
-      label: "損益分岐勝率", value: neededText, sub: neededSub,
-      note: group === "sell"
-        ? "損切額と予想利益(利確時)から、期待値がちょうどゼロになる勝率を算出したものです。\n(p=損切額÷(予想利益+損切額))\n実績の勝率(絞り込みなし/あり)は一切使っていません。"
-        : "損切額と見越し最大利益額から、期待値がちょうどゼロになる勝率を算出したものです。\n(p=損切額÷(見越し最大利益額+損切額))\n実績の勝率(絞り込みなし/あり)は一切使っていません。",
+      label: "損益分岐ITM発生率", value: neededText, sub: neededSub,
+      note: (group === "sell"
+        ? "損切額と予想利益(利確時)から、期待値がちょうどゼロになる勝率(損益分岐勝率)を算出し、実績と同じ向きのITM発生率に換算したものです。\n(損益分岐勝率p=損切額÷(予想利益+損切額)、ITM発生率=1−p)\n実際のITM発生率がこの値以下なら有利、上回れば不利です。"
+        : "損切額と見越し最大利益額から、期待値がちょうどゼロになる勝率(損益分岐勝率)を算出し、実績と同じ向きのITM発生率に換算したものです。\n(損益分岐勝率p=損切額÷(見越し最大利益額+損切額)、買いはITM発生率=p)\n実際のITM発生率がこの値以上なら有利、下回れば不利です。")
+        + "\n実績の割合(絞り込みなし/あり)は一切使っていません。",
     },
     {
       label: baseVerdict.label, value: `<span class="badge ${baseVerdict.badge}">${baseVerdict.value}</span>`, isBadge: true,
-      note: "上の「絞り込みなし」の実績勝率が、左の損益分岐勝率以上であれば「統計的に有利」です。",
+      note: "上の「絞り込みなし」の実績が有利な側(売りはITM発生率が損益分岐ITM発生率以下、買いは以上)であれば「統計的に有利」です。\n(勝率で比べても同じ結果になります)",
     },
     {
       label: condVerdict.label, value: `<span class="badge ${condVerdict.badge}">${condVerdict.value}</span>`, isBadge: true,
-      note: "上の「エントリー条件で絞り込みあり」の実績勝率が、左の損益分岐勝率以上であれば「統計的に有利」です。",
+      note: "上の「エントリー条件で絞り込みあり」の実績が有利な側(売りはITM発生率が損益分岐ITM発生率以下、買いは以上)であれば「統計的に有利」です。\n(勝率で比べても同じ結果になります)",
     },
   ];
 
@@ -1015,7 +1021,7 @@ function renderRiskRewardBlock(summaryEl, warningEl, { group, infinite, winInfo,
       verdictNote = "実際の最大損失額と、左の「一回の損切における上限額」を比較した結果です。\n実際の最大損失額が上限額以下なら「統計的に有利」、上回っていれば「統計的に不利」です。";
     }
     if (!infinite && winRate !== null) {
-      lossRateSub = `敗率は${((1 - winRate) * 100).toFixed(1)}%まで`;
+      lossRateSub = `ITM発生率は${((1 - winRate) * 100).toFixed(1)}%まで`;
     }
   } else {
     breakEvenLabel = "損益分岐に必要な最低利益額(参考)";
@@ -1025,11 +1031,17 @@ function renderRiskRewardBlock(summaryEl, warningEl, { group, infinite, winInfo,
     verdictNote = "買い系は損失が支払いプレミアムに固定される一方、勝ったときの利益額は銘柄の値動き次第で変動し、このツールでは追跡していません。\nそのため有利/不利の自動判定は行わず、左の金額を参考値として表示しています。";
   }
 
-  const winRateLabel = group === "sell" ? "勝率(負けない確率)" : "勝率(ITMを勝ちとした確率)";
-  const winRateNote = group === "sell"
-    ? "判定期間内のどの営業日の終値も、設定した深さ(権利行使価格±◯ドル)に届かなかった(負けなかった)エントリー日の割合です。\n売りは深いITMになるほど不利なため「負けない確率」と表現しています。\n深さが空欄(0ドル)なら「一度もITMにならなかった割合」になります。"
-    : "判定期間内のいずれかの営業日の終値が、設定した深さ(権利行使価格±◯ドル)に届いた(勝った)エントリー日の割合です。\n買いはITMが深いほど有利なため「ITMを勝ちとした確率」と表現しています。\n深さが空欄(0ドル)なら「一度でもITMになった割合」になります。";
-  const winRateSub = isBase ? "いつエントリーしてもこの勝率" : null;
+  // 主表示は、分析結果・エントリー条件で絞り込みと同じ向きの「ITM発生率」にそろえる。
+  // 勝率(売りは負けない確率、買いはITMを勝ちとした確率)は損益分岐の計算に使うため、サブ表示で併記する。
+  const itmRateText = total === 0 ? "―" : (hitCount / total * 100).toFixed(1) + "%";
+  const winRateName = group === "sell" ? "勝率(負けない確率)" : "勝率(ITMを勝ちとした確率)";
+  const winRateLabel = "ITM発生率";
+  const winRateNote = "判定期間内のいずれかの営業日の終値が、設定した深さ(権利行使価格±◯ドル)以上のITMに届いたエントリー日の割合です。\n「分析結果」「エントリー条件で絞り込み」の「ITM発生エントリー数の割合」と同じ向きの数字です。\n深さが空欄(0ドル)なら「一度でもITMになった割合」になります。\n"
+    + (group === "sell"
+      ? "売りはITMが少ないほど有利です(届いたエントリー=負け)。下に併記した勝率(負けない確率)は、100%−この率です。"
+      : "買いはITMが多いほど有利です(届いたエントリー=勝ち)。下に併記した勝率は、この率と同じ値です。")
+    + "\n損益分岐の計算(一回の損切における上限額など)には、勝率を使っています。";
+  const winRateSub = `${winRateName} ${winRateText}` + (isBase ? "<br>いつエントリーしてもこの率" : "");
   const maxLossNote = infinite
     ? "コール売り(単体)は株価に上限がないため、理論上損失は無限大になり得ます。"
     : group === "sell"
@@ -1037,11 +1049,11 @@ function renderRiskRewardBlock(summaryEl, warningEl, { group, infinite, winInfo,
       : "支払ったプレミアム額そのものが、このポジションの最大損失額です(それ以上の損失は発生しません)。";
   const totalNote = isBase
     ? "「分析結果」と同じ母集団(集計期間−判定期間)の件数です。"
-    : "「エントリー条件で絞り込み」で指定した値動き条件に当てはまった日数(該当日数)です。\n絞り込み後の件数を分母にすることで、実際にエントリーする場面だけに絞った勝率になります。";
+    : "「エントリー条件で絞り込み」で指定した値動き条件に当てはまった日数(該当日数)です。\n絞り込み後の件数を分母にすることで、実際にエントリーする場面だけに絞った率になります。";
 
   const items = [
     { label: "母数(件数)", value: total.toLocaleString("ja-JP"), note: totalNote },
-    { label: winRateLabel, value: winRateText, note: winRateNote, sub: winRateSub },
+    { label: winRateLabel, value: itmRateText, note: winRateNote, sub: winRateSub },
     { label: "実際の最大損失額", value: maxLossText, note: maxLossNote },
   ];
   if (group === "sell" && !infinite) {

@@ -177,7 +177,7 @@ ITMが良い結果か悪い結果かは取引タイプにより異なります�
     <p class="sub" style="margin:0 0 10px"><b>リスクリワードとは：</b><br>
       ・1回の負けで失う額が小さく、1回の勝ちで得る額が大きいほど → 必要な勝率は低くて済む（多少負けが込んでも平気）<br>
       ・1回の負けで失う額が大きく、1回の勝ちで得る額が小さいほど → かなり高い勝率がないと割に合わない</p>
-    <p class="sub" style="margin:0 0 10px"><b>考え方：</b>判定期間内のいずれかの営業日の終値が、権利行使価格から指定した深さ（◯ドル）以上のITMに届いたエントリー日を、売りは「負け」・買いは「勝ち」とみなして勝率を算出します。受取/支払いプレミアムと組み合わせて、損益分岐の目安と比較します。</p>
+    <p class="sub" style="margin:0 0 10px"><b>考え方：</b>判定期間内のいずれかの営業日の終値が、権利行使価格から指定した深さ（◯ドル）以上のITMに届いたエントリー日を、売りは「負け」・買いは「勝ち」とみなして、ITM発生率（分析結果と同じ向きの率。勝率も併記）を算出します。受取/支払いプレミアムと組み合わせて、損益分岐の目安と比較します。</p>
     <div class="form-row">
       <div class="field">
         <label for="rrVariantSelect" data-target="riskRewardExplain"
@@ -239,7 +239,7 @@ ITMが良い結果か悪い結果かは取引タイプにより異なります�
     <div id="rrCondWarning" class="disc" style="margin-top:8px" hidden></div>
 
     <h3 style="margin:18px 0 8px;font-size:14px">損切額から損益分岐を確認</h3>
-    <p class="sub" style="margin:0 0 10px">実際に損切りするつもりの金額（買い系は見越している最大利益額も）を入力すると、損益分岐に必要な勝率を算出し、上の実績勝率と比較します。</p>
+    <p class="sub" style="margin:0 0 10px">実際に損切りするつもりの金額（買い系は見越している最大利益額も）を入力すると、損益分岐に必要なITM発生率（勝率に換算した値も併記）を算出し、上の実績のITM発生率と比較します。</p>
     <div class="form-row">
       <div class="field" id="rrSpreadWidthField" hidden>
         <label for="rrSpreadWidthInput" data-target="riskRewardExplain"
