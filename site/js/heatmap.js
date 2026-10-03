@@ -76,3 +76,68 @@ export function renderEntryHeatmap(perEntry, window, group, depthLabel = "") {
 
   return `<div class="hm-months">${blocks}</div>`;
 }
+
+// ---- エントリー日ごとの「最大ITM深さ」ヒートマップ ----
+// 判定期間内の終値が、権利行使価格から最も深く入った割合(%)を色で表す。日数ではなく深さを見るので、
+// 「一瞬だけ深く入った日」と「浅いまま長く続いた日」を区別できる。売りは深いほど不利(寒色→紫)、
+// 買いは深いほど有利(寒色/灰→黄→橙→赤)。段階はユーザー指定: 0%, 〜3%, 3〜5%, 5〜8%, 8〜10%, 10〜15%, 15%超。
+const DARK_PURPLE = "color-mix(in srgb, var(--gradPurple) 60%, #000)";
+const DARK_RED = "color-mix(in srgb, var(--gradRed) 65%, #000)";
+const MID_BLUE_PURPLE = "color-mix(in srgb, var(--gradBlue) 50%, var(--gradPurple))";
+
+export const DEPTH_HEATMAP_BANDS = {
+  sell: [
+    { max: 0, label: "0%（ITMなし）", color: LIGHT_GRAY },
+    { max: 0.03, label: "〜3%", color: PALE_LIGHT_BLUE },
+    { max: 0.05, label: "3〜5%", color: "var(--gradLightBlue)" },
+    { max: 0.08, label: "5〜8%", color: "var(--gradBlue)" },
+    { max: 0.10, label: "8〜10%", color: MID_BLUE_PURPLE },
+    { max: 0.15, label: "10〜15%", color: "var(--gradPurple)" },
+    { max: Infinity, label: "15%超", color: DARK_PURPLE },
+  ],
+  buy: [
+    { max: 0, label: "0%（ITMなし）", color: "var(--gradLightBlue)" },
+    { max: 0.03, label: "〜3%", color: LIGHT_GRAY },
+    { max: 0.05, label: "3〜5%", color: LIGHT_YELLOW },
+    { max: 0.08, label: "5〜8%", color: "var(--gradYellow)" },
+    { max: 0.10, label: "8〜10%", color: "var(--gradOrange)" },
+    { max: 0.15, label: "10〜15%", color: "var(--gradRed)" },
+    { max: Infinity, label: "15%超", color: DARK_RED },
+  ],
+};
+
+function depthColor(depthPct, group) {
+  const bands = DEPTH_HEATMAP_BANDS[group] || DEPTH_HEATMAP_BANDS.sell;
+  const band = bands.find((b) => depthPct <= b.max);
+  return band ? band.color : bands[bands.length - 1].color;
+}
+
+/**
+ * @param {{date:string|null, maxDepthPct:number}[]} perEntry
+ * @param {number} window 判定期間(営業日)
+ * @param {'sell'|'buy'} group
+ * @param {{depthPct:number, depthDollar:number, todayStrike:number}} opts
+ *   depthPct/depthDollar: 「判定する深さ」(割合/ドル)。0なら印は付けない。
+ *   todayStrike: 現在の権利行使価格(%をドルに換算して表示するため)
+ */
+export function renderDepthHeatmap(perEntry, window, group, opts) {
+  const { depthPct = 0, depthDollar = 0, todayStrike = 0 } = opts || {};
+  const months = groupByMonth(perEntry);
+  const blocks = months.map(({ yearMonth, entries }) => {
+    const cells = entries.map(({ date, maxDepthPct }) => {
+      const dateLabel = date || "―";
+      const marked = depthPct > 0 && maxDepthPct >= depthPct - 1e-12;
+      let title;
+      if (!(maxDepthPct > 0)) {
+        title = `${dateLabel}: 判定期間${window}日中、ITMになりませんでした`;
+      } else {
+        title = `${dateLabel}: 判定期間${window}日中の最大深さ ${(maxDepthPct * 100).toFixed(1)}%（現在の権利行使価格に換算すると約${(maxDepthPct * todayStrike).toFixed(2)}ドル）`;
+      }
+      if (marked) title += `／判定する深さ(${depthDollar}ドル)に届きました`;
+      return `<div class="hm-cell${marked ? " hm-mark" : ""}" style="background:${depthColor(maxDepthPct, group)}" title="${title}"></div>`;
+    }).join("");
+    const label = yearMonth ? monthLabel(yearMonth) : "―";
+    return `<div class="hm-month"><div class="hm-month-label">${label}</div><div class="hm-grid hm-grid-5x5">${cells}</div></div>`;
+  }).join("");
+  return `<div class="hm-months">${blocks}</div>`;
+}

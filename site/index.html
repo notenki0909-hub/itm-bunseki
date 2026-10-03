@@ -129,6 +129,16 @@ ITMが良い結果か悪い結果かは取引タイプにより異なります�
     <div id="heatmapWrap"></div>
     <div class="hm-legend" id="entryHeatmapLegend"></div>
 
+    <div class="chart-title" id="depthHeatmapTitle" data-target="depthHeatmapExplain"
+      data-note="上の「エントリー日ごとのITM状況」が日数を表すのに対し、こちらは深さを表します。
+各エントリー日から判定期間内に、終値が権利行使価格から最も深く入った割合(%)を色で示します（プット系は下回った分、コール系は上回った分。一度もITMにならなかった日は0%）。
+「一瞬だけ深く入った日」と「浅いまま長く続いた日」を区別できます。
+色は%の絶対値で、売りは深いほど不利(紫に近い)、買いは深いほど有利(赤に近い)という向きです。
+「判定する深さ」を入力している場合は、その深さ以上に届いた日に枠線が付きます。
+マウスを乗せると、日付と最大の深さ(%と、現在の権利行使価格に換算した約◯ドル)が表示されます。">エントリー日ごとの最大ITM深さ（マウスを乗せると日付を表示）</div>
+    <div id="depthHeatmapWrap"></div>
+    <div class="hm-legend" id="depthHeatmapLegend"></div>
+
     <p style="margin:14px 0 0"><button id="openDetailBtn" type="button" class="btn-outline">詳細マトリクスを別ページで見る（元Excel形式）</button></p>
   </div>
 
