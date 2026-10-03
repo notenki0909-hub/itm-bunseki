@@ -78,6 +78,12 @@ function applyRecipe(t, rec) {
     rrExpectedGain: rec.rrExpectedGain ?? t.rrExpectedGain,
     rrSpreadWidth: rec.rrSpreadWidth ?? t.rrSpreadWidth,
   });
+  // 旧仕様では買い系の支払いプレミアム額をrrLossBasisに保存していた。プレミアム額を
+  // 上部の1つの入力欄(rrPremium)に集約したため、古い保存状態・共有リンクは引き継ぐ。
+  if (typeGroup(t.typeKey) === "buy" && (rec.rrPremium === null || rec.rrPremium === undefined)
+      && rec.rrLossBasis !== null && rec.rrLossBasis !== undefined) {
+    t.rrPremium = rec.rrLossBasis;
+  }
 }
 
 function persistState() {
@@ -263,6 +269,8 @@ const els = {
   rrBreakEvenSummary: document.getElementById("rrBreakEvenSummary"),
   rrLossBasisInput: document.getElementById("rrLossBasisInput"),
   rrLossBasisLabel: document.getElementById("rrLossBasisLabel"),
+  rrLossBasisField: document.getElementById("rrLossBasisField"),
+  rrPremiumLabel: document.getElementById("rrPremiumLabel"),
   rrPremiumInput: document.getElementById("rrPremiumInput"),
   rrProfitRatioInput: document.getElementById("rrProfitRatioInput"),
   rrInfiniteNote: document.getElementById("rrInfiniteNote"),
@@ -722,13 +730,13 @@ function updateRiskRewardInputUI(typeKey, variant) {
 
   els.rrInfiniteNote.hidden = !infinite;
   els.rrLossBasisInput.disabled = infinite || auto;
-  els.rrPremiumInput.disabled = group === "buy";
+  // 買い系は損失額＝支払いプレミアム額そのもの(上部のプレミアム額入力)なので、損失額入力欄は不要。
+  els.rrLossBasisField.hidden = group === "buy";
+  els.rrPremiumLabel.textContent = group === "buy" ? "支払いプレミアム額" : "受取プレミアム額";
   els.rrProfitRatioInput.disabled = group === "buy";
 
   if (infinite) {
     els.rrLossBasisLabel.textContent = "損失額(無限大)";
-  } else if (group === "buy") {
-    els.rrLossBasisLabel.textContent = "支払いプレミアム額";
   } else if (variant === "spread") {
     els.rrLossBasisLabel.textContent = "権利行使価格の差額(スプレッド幅)";
   } else {
@@ -762,9 +770,9 @@ function computeCutLossCaps(t) {
       cutLossCap = basis - t.rrPremium;
     }
   } else {
-    if (t.rrLossBasis !== null) cutLossCap = t.rrLossBasis;
-    if (t.rrVariant === "spread" && t.rrSpreadWidth !== null && t.rrLossBasis !== null) {
-      const cap = t.rrSpreadWidth - t.rrLossBasis;
+    if (t.rrPremium !== null) cutLossCap = t.rrPremium;
+    if (t.rrVariant === "spread" && t.rrSpreadWidth !== null && t.rrPremium !== null) {
+      const cap = t.rrSpreadWidth - t.rrPremium;
       gainCap = cap >= 0 ? cap : null;
     }
   }
@@ -927,8 +935,8 @@ function renderRiskReward(t) {
       actualMaxLoss = (basis !== null && t.rrPremium !== null) ? basis - t.rrPremium : null;
     }
   } else {
-    premiumForBreakEven = t.rrLossBasis;
-    actualMaxLoss = t.rrLossBasis;
+    premiumForBreakEven = t.rrPremium;
+    actualMaxLoss = t.rrPremium;
   }
 
   renderRiskRewardBlock(els.rrBaseSummary, els.rrBaseWarning, {
@@ -952,7 +960,7 @@ function renderBreakEvenPrice(t, closes, todayStrike) {
   const type = OPTION_TYPES[t.typeKey];
   const group = typeGroup(t.typeKey);
   const isPut = type.itmWhen === "below";
-  const premium = group === "sell" ? t.rrPremium : t.rrLossBasis;
+  const premium = t.rrPremium;
   const premiumName = group === "sell" ? "受取プレミアム額" : "支払いプレミアム額";
   const formula = `権利行使価格${isPut ? "−" : "＋"}${premiumName}`;
   const latest = closes[closes.length - 1];

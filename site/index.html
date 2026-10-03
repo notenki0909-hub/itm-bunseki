@@ -35,6 +35,21 @@
         <label for="periodSelect">集計期間</label>
         <select id="periodSelect"></select>
       </div>
+      <div class="field">
+        <label for="rrPremiumInput" data-target="riskRewardExplain"
+          data-note="注文時の条件です。売りなら受取プレミアム額、買いなら支払いプレミアム額（どちらも1株あたりの合計額）を入力します。
+リスクリワード分析の損益分岐点・最大損失額・損切額の上限などに使います。スプレッドの場合は、差し引き後の正味の額（受取−支払い）を入力してください。
+（買い系は支払いプレミアム額がそのまま最大損失額になります）"><span id="rrPremiumLabel">受取プレミアム額</span></label>
+        <input id="rrPremiumInput" type="number" step="0.01" min="0" placeholder="例: 1.20">
+      </div>
+      <div class="field">
+        <label for="rrProfitRatioInput" data-target="riskRewardExplain"
+          data-note="注文時の条件です(売り系のみ)。反対売買（買い戻し）で決済する場合、買い戻しにも費用がかかるため、実際に手元に残る利益は受取プレミアムの一部にとどまります。
+受け取ったプレミアムのうち何%を利益として確定させるかを入力してください。
+（未入力の場合は100%＝満期まで保有して受取プレミアムを丸々得たものとして計算します）
+買い系を選んでいる間は使わないため入力できません。">利確割合(%)</label>
+        <input id="rrProfitRatioInput" type="number" step="1" min="0" max="100" placeholder="未入力=100%">
+      </div>
       <button id="analyzeBtn" type="button">分析する</button>
     </div>
     <div id="status"></div>
@@ -177,7 +192,7 @@ ITMが良い結果か悪い結果かは取引タイプにより異なります�
     <p class="sub" style="margin:0 0 10px"><b>リスクリワードとは：</b><br>
       ・1回の負けで失う額が小さく、1回の勝ちで得る額が大きいほど → 必要な勝率は低くて済む（多少負けが込んでも平気）<br>
       ・1回の負けで失う額が大きく、1回の勝ちで得る額が小さいほど → かなり高い勝率がないと割に合わない</p>
-    <p class="sub" style="margin:0 0 10px"><b>考え方：</b>判定期間内のいずれかの営業日の終値が、権利行使価格から指定した深さ（◯ドル）以上のITMに届いたエントリー日を、売りは「負け」・買いは「勝ち」とみなして、ITM発生率（分析結果と同じ向きの率。勝率も併記）を算出します。受取/支払いプレミアムと組み合わせて、損益分岐の目安と比較します。</p>
+    <p class="sub" style="margin:0 0 10px"><b>考え方：</b>判定期間内のいずれかの営業日の終値が、権利行使価格から指定した深さ（◯ドル）以上のITMに届いたエントリー日を、売りは「負け」・買いは「勝ち」とみなして、ITM発生率（分析結果と同じ向きの率。勝率も併記）を算出します。受取/支払いプレミアム額と利確割合（上部の入力欄に入力した注文時の条件）と組み合わせて、損益分岐の目安と比較します。</p>
     <div class="form-row">
       <div class="field">
         <label for="rrVariantSelect" data-target="riskRewardExplain"
@@ -200,29 +215,14 @@ ITMが良い結果か悪い結果かは取引タイプにより異なります�
       </div>
     </div>
     <div class="form-row">
-      <div class="field">
+      <div class="field" id="rrLossBasisField">
         <label for="rrLossBasisInput" data-target="riskRewardExplain"
           data-note="プット売り(単体)の株購入価格は、現在の権利行使価格(本日の終値×権利行使価格の比率)を自動で使うため、入力不要です(入力欄には自動計算した値が表示されます)。
-スプレッドなら2つの権利行使価格の差額（スプレッド幅）、単体買い/デビットスプレッドなら支払いプレミアム額を入力します。
-コール売り(単体)は損失が無限大のため使いません。">
+スプレッド（ブルプット/ベアコール）なら2つの権利行使価格の差額（スプレッド幅）を入力します。
+コール売り(単体)は損失が無限大のため使いません。
+買い系は損失額＝支払いプレミアム額（上部の入力欄）のため、この欄は表示されません。">
           <span id="rrLossBasisLabel">株購入価格</span></label>
         <input id="rrLossBasisInput" type="number" step="0.01" min="0" placeholder="例: 45.00">
-      </div>
-      <div class="field">
-        <label for="rrPremiumInput" data-target="riskRewardExplain"
-          data-note="オプションの売り手として受け取るプレミアム額（合計）です。
-買い系を選んでいる間は使わないため入力できません。">受取プレミアム額</label>
-        <input id="rrPremiumInput" type="number" step="0.01" min="0" placeholder="例: 1.20">
-      </div>
-    </div>
-    <div class="form-row">
-      <div class="field">
-        <label for="rrProfitRatioInput" data-target="riskRewardExplain"
-          data-note="反対売買（買い戻し）で決済する場合、買い戻しにも費用がかかるため、実際に手元に残る利益は受取プレミアムの一部にとどまります。
-受け取ったプレミアムのうち何%を利益として確定させるかを入力してください。
-（未入力の場合は100%＝満期まで保有して受取プレミアムを丸々得たものとして計算します）
-買い系を選んでいる間は使わないため入力できません。">利確割合(%)</label>
-        <input id="rrProfitRatioInput" type="number" step="1" min="0" max="100" placeholder="未入力=100%">
       </div>
     </div>
     <p class="sub" id="rrInfiniteNote" style="margin:-6px 0 10px" hidden>コール売り(単体)は理論上、損失が無限大になり得るため、上の「一回の損切における上限額」の判定には受取プレミアム額・利確割合を使用しません（損失額入力欄も無効化されています）。ただし下の「損切額から損益分岐を確認」では、自分で決めた損切額と組み合わせて使用します。</p>
