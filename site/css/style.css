@@ -230,6 +230,7 @@ button:disabled{opacity:.6;cursor:default}
 .dm-expand{margin:0 0 10px}
 
 /* 「変動幅の統計」カードの表 */
+.volatility-wrap{overflow-x:auto}
 .volatility-table{width:100%;border-collapse:collapse;font-size:13px}
 .volatility-table th,.volatility-table td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line)}
 .volatility-table th{background:var(--th);color:var(--muted);font-size:11.5px;font-weight:700}

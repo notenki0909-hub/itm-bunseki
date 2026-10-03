@@ -45,9 +45,14 @@ export const RECENT_VOLATILITY_WINDOW = 253;
  * ローリングウィンドウですべて求め、絶対値の平均・最大上昇率・最大下落率を返す。
  * 符号は無視して絶対値で平均するため、「その期間でどれくらい値が動きやすいか」の指標になる
  * (上昇・下落のどちらかに偏った平均ではない)。
+ * あわせて、各ウィンドウ(開始日〜days営業日後)の内側での「安値から高値への最大上昇」
+ * (maxRunUpPct)と「高値から安値への最大下落=ドローダウン」(maxDrawdownPct、負の値)も、
+ * 全ウィンドウの中での最大値として返す。始点→終点の騰落率(maxRisePct/maxFallPct)と違い、
+ * 途中でいったん動いて戻った分も拾える。
  * @param {number[]} closes
  * @param {number} days
- * @returns {{avgAbsPct:number, maxRisePct:number, maxFallPct:number, count:number}|null}
+ * @returns {{avgAbsPct:number, maxRisePct:number, maxFallPct:number,
+ *            maxRunUpPct:number, maxDrawdownPct:number, count:number}|null}
  */
 export function computeVolatilityStats(closes, days) {
   if (!Array.isArray(closes)) return null;
@@ -57,6 +62,8 @@ export function computeVolatilityStats(closes, days) {
   let count = 0;
   let maxRise = -Infinity;
   let maxFall = Infinity;
+  let maxRunUp = 0;
+  let maxDrawdown = 0;
   for (let i = 0; i + days < n; i++) {
     const c0 = closes[i];
     const c1 = closes[i + days];
@@ -66,9 +73,23 @@ export function computeVolatilityStats(closes, days) {
     count++;
     if (change > maxRise) maxRise = change;
     if (change < maxFall) maxFall = change;
+
+    let peak = c0;
+    let trough = c0;
+    for (let k = 1; k <= days; k++) {
+      const c = closes[i + k];
+      if (!(c > 0)) continue;
+      if (c > peak) peak = c;
+      else if (c / peak - 1 < maxDrawdown) maxDrawdown = c / peak - 1;
+      if (c < trough) trough = c;
+      else if (c / trough - 1 > maxRunUp) maxRunUp = c / trough - 1;
+    }
   }
   if (count === 0) return null;
-  return { avgAbsPct: sumAbs / count, maxRisePct: maxRise, maxFallPct: maxFall, count };
+  return {
+    avgAbsPct: sumAbs / count, maxRisePct: maxRise, maxFallPct: maxFall,
+    maxRunUpPct: maxRunUp, maxDrawdownPct: maxDrawdown, count,
+  };
 }
 
 /**

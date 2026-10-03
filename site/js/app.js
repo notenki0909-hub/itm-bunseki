@@ -564,8 +564,10 @@ function renderVolatilityCard(t) {
     const pctText = stats ? (stats.avgAbsPct * 100).toFixed(2) + "%" : "―";
     const riseText = stats ? "+" + (stats.maxRisePct * 100).toFixed(2) + "%" : "―";
     const fallText = stats ? (stats.maxFallPct * 100).toFixed(2) + "%" : "―";
+    const runUpText = stats ? "+" + (stats.maxRunUpPct * 100).toFixed(2) + "%" : "―";
+    const drawdownText = stats ? (stats.maxDrawdownPct * 100).toFixed(2) + "%" : "―";
     const amountText = recent ? recent.avgAbsAmount.toFixed(2) : "―";
-    return `<tr><td>${label}</td><td>${pctText}</td><td>${riseText}</td><td>${fallText}</td><td>${amountText}</td></tr>`;
+    return `<tr><td>${label}</td><td>${pctText}</td><td>${riseText}</td><td>${fallText}</td><td>${runUpText}</td><td>${drawdownText}</td><td>${amountText}</td></tr>`;
   }).join("");
   els.volatilityCard.hidden = false;
 }
