@@ -95,15 +95,18 @@
 この日数分が、実際に計算できる「取引開始日」の件数になります。">
         <b id="entryCount">―</b><span>集計期間の営業日日数（判定期間分マイナス）</span></div>
       <div class="stat" data-target="resultExplain" data-note="判定件数のうち、判定期間内に1日でもITMになった「取引開始日」の実数です。
+（「判定する深さ」を入力した場合は、その深さ以上のITMで数えます。ラベルにも「ITM（◯ドル）」と表示されます）
 ITMが良い結果か悪い結果かは取引タイプにより異なります。">
-        <b id="itmCount">―</b><span>ITM発生エントリー数</span></div>
+        <b id="itmCount">―</b><span>ITM<span class="dep-sfx"></span>発生エントリー数</span></div>
       <div class="stat" data-target="resultExplain" data-note="全エントリー日について、判定期間内でITMだった日数を合計したものです。
+（「判定する深さ」を入力した場合は、その深さ以上のITMで数えます。ラベルにも「ITM（◯ドル）」と表示されます）
 下のヒートマップの色の濃淡（セルごとのITM日数）の総和にあたります。
 1つのエントリーが何日もITMのままだと大きくなるため、ITM発生エントリー数とは異なる指標です。">
-        <b id="totalItmDays">―</b><span>ITM発生延べ日数</span></div>
+        <b id="totalItmDays">―</b><span>ITM<span class="dep-sfx"></span>発生延べ日数</span></div>
       <div class="stat" data-target="resultExplain" data-note="ITM発生エントリー数 ÷ 判定件数。
+（「判定する深さ」を入力した場合は、その深さ以上のITMで数えます。ラベルにも「ITM（◯ドル）」と表示されます）
 売り(プット売/コール売)は低いほど、買い(コール買/プット買)は高いほど有利です。">
-        <b id="overallProb">―</b><span>ITM発生エントリー数の割合</span></div>
+        <b id="overallProb">―</b><span>ITM<span class="dep-sfx"></span>発生エントリー数の割合</span></div>
       <div class="stat" data-target="resultExplain" data-note="ITM発生エントリー数の割合を、そのタイプにとって有利な方向の確率に変換して7段階評価したものです。
 赤に近いほど有利、紫に近いほど不利を表します（詳細マトリクスと共通の配色です）。">
         <span class="badge" id="badge">―</span><br><span>総合判定</span></div>
@@ -268,14 +271,17 @@ ITMが良い結果か悪い結果かは取引タイプにより異なります�
     <div class="summary">
       <div class="stat" data-target="conditionExplain" data-note="集計期間（− 判定期間など）の中で、指定した値動き条件に当てはまった日数です。">
         <b id="matchedCount">―</b><span>該当日数</span></div>
-      <div class="stat" data-target="conditionExplain" data-note="該当日数のうち、判定期間内に1日でもITMになった日の実数です。">
-        <b id="matchedItmCount">―</b><span>ITM発生エントリー数</span></div>
+      <div class="stat" data-target="conditionExplain" data-note="該当日数のうち、判定期間内に1日でもITMになった日の実数です。
+（「判定する深さ」を入力した場合は、その深さ以上のITMで数えます。ラベルにも「ITM（◯ドル）」と表示されます）">
+        <b id="matchedItmCount">―</b><span>ITM<span class="dep-sfx"></span>発生エントリー数</span></div>
       <div class="stat" data-target="conditionExplain" data-note="該当日について、判定期間内でITMだった日数を合計したものです。
+（「判定する深さ」を入力した場合は、その深さ以上のITMで数えます。ラベルにも「ITM（◯ドル）」と表示されます）
 1つのエントリーが何日もITMのままだと大きくなるため、ITM発生エントリー数とは異なる指標です。">
-        <b id="matchedTotalItmDays">―</b><span>ITM発生延べ日数</span></div>
+        <b id="matchedTotalItmDays">―</b><span>ITM<span class="dep-sfx"></span>発生延べ日数</span></div>
       <div class="stat" data-target="conditionExplain" data-note="ITM発生エントリー数 ÷ 該当日数。
+（「判定する深さ」を入力した場合は、その深さ以上のITMで数えます。ラベルにも「ITM（◯ドル）」と表示されます）
 条件に当てはまった日だけで見た割合です。">
-        <b id="matchedProb">―</b><span>ITM発生エントリー数の割合</span></div>
+        <b id="matchedProb">―</b><span>ITM<span class="dep-sfx"></span>発生エントリー数の割合</span></div>
       <div class="stat" data-target="conditionExplain" data-note="今の値動きが、上で指定した条件に当てはまるかどうかです。">
         <span class="badge" id="todayMatchBadge">―</span><br><span>本日はこの条件に</span></div>
     </div>

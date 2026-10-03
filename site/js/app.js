@@ -615,6 +615,12 @@ function depthInfo(t, closes) {
   return { depthDollar, todayStrike, depthPct };
 }
 
+// 判定する深さを入力しているとき、ラベルに付ける「（◯ドル）」。空欄(0ドル)なら空文字。
+function depthSuffixOf(t) {
+  const d = t.rrDepth ?? 0;
+  return d > 0 ? `（${d}ドル）` : "";
+}
+
 function renderMainAnalysis(t) {
   const closes = periodClosesOf(t);
   const dates = periodDatesOf(t);
@@ -631,7 +637,8 @@ function renderMainAnalysis(t) {
   els.rrDepthPct.textContent = depthDollar > 0
     ? `＝ 権利行使価格の約${(depthPct * 100).toFixed(2)}%（現在の権利行使価格${todayStrike.toFixed(2)}に対して）`
     : "＝ 0%（一度でもITMになれば該当）";
-  const depthTitle = depthDollar > 0 ? `（${depthDollar}ドル）` : "";
+  const depthTitle = depthSuffixOf(t);
+  document.querySelectorAll(".dep-sfx").forEach((el) => { el.textContent = depthTitle; });
   els.dayProbDepth.textContent = depthTitle;
   els.heatmapDepth.textContent = depthTitle;
 
@@ -675,8 +682,10 @@ function renderColorLegend(bands) {
 function renderConditionCard(t) {
   const closes = periodClosesOf(t);
   const type = OPTION_TYPES[t.typeKey];
+  const { depthPct } = depthInfo(t, closes);
 
   const conditional = computeConditionalItmAnalysis(closes, {
+    depthPct,
     ratio: t.ratio,
     itmWhen: type.itmWhen,
     window: t.windowDays,
@@ -852,7 +861,7 @@ function renderCutLossSection(t, { group, infinite, premiumForBreakEven, baseWin
   const neededItmRate = neededWinRate === null ? null : (group === "sell" ? 1 - neededWinRate : neededWinRate);
   const neededText = neededItmRate === null ? "―" : (neededItmRate * 100).toFixed(1) + "%";
   const neededSub = neededWinRate === null ? null
-    : `ITM発生率が${neededText}${group === "sell" ? "以下" : "以上"}なら有利<br>損益分岐勝率 ${neededWinText}（${tenTrialText(neededWinRate)}）`;
+    : `ITM${depthSuffixOf(t)}発生率が${neededText}${group === "sell" ? "以下" : "以上"}なら有利<br>損益分岐勝率 ${neededWinText}（${tenTrialText(neededWinRate)}）`;
 
   function verdictItem(label, winInfo) {
     const actual = winInfo.winRate;
@@ -869,7 +878,7 @@ function renderCutLossSection(t, { group, infinite, premiumForBreakEven, baseWin
   const T = "riskRewardExplain";
   const items = [
     {
-      label: "損益分岐ITM発生率", value: neededText, sub: neededSub,
+      label: `損益分岐ITM${depthSuffixOf(t)}発生率`, value: neededText, sub: neededSub,
       note: (group === "sell"
         ? "損切額と予想利益(利確時)から、期待値がちょうどゼロになる勝率(損益分岐勝率)を算出し、実績と同じ向きのITM発生率に換算したものです。\n(損益分岐勝率p=損切額÷(予想利益+損切額)、ITM発生率=1−p)\n実際のITM発生率がこの値以下なら有利、上回れば不利です。"
         : "損切額と見越し最大利益額から、期待値がちょうどゼロになる勝率(損益分岐勝率)を算出し、実績と同じ向きのITM発生率に換算したものです。\n(損益分岐勝率p=損切額÷(見越し最大利益額+損切額)、買いはITM発生率=p)\n実際のITM発生率がこの値以上なら有利、下回れば不利です。")
@@ -938,10 +947,10 @@ function renderRiskReward(t) {
   }
 
   renderRiskRewardBlock(els.rrBaseSummary, els.rrBaseWarning, {
-    group, infinite, winInfo: baseWin, actualMaxLoss, premiumForBreakEven, isBase: true,
+    group, infinite, winInfo: baseWin, actualMaxLoss, premiumForBreakEven, isBase: true, depthSuffix: depthSuffixOf(t),
   });
   renderRiskRewardBlock(els.rrCondSummary, els.rrCondWarning, {
-    group, infinite, winInfo: condWin, actualMaxLoss, premiumForBreakEven, isBase: false,
+    group, infinite, winInfo: condWin, actualMaxLoss, premiumForBreakEven, isBase: false, depthSuffix: depthSuffixOf(t),
   });
   renderCutLossSection(t, { group, infinite, premiumForBreakEven, baseWin, condWin });
 
@@ -1096,7 +1105,7 @@ function renderBreakEvenPrice(t, closes, todayStrike) {
 }
 
 // リスクリワード分析の1ブロック(絞り込みなし/絞り込みあり、それぞれ)を描画する。
-function renderRiskRewardBlock(summaryEl, warningEl, { group, infinite, winInfo, actualMaxLoss, premiumForBreakEven, isBase }) {
+function renderRiskRewardBlock(summaryEl, warningEl, { group, infinite, winInfo, actualMaxLoss, premiumForBreakEven, isBase, depthSuffix }) {
   const { total, winRate, hitCount, recoveredCount, unrecoveredCount, avgRecoveryDays, medianRecoveryDays } = winInfo;
   const winRateText = winRate === null ? "―" : (winRate * 100).toFixed(1) + "%";
   const maxLossText = infinite ? "無限大" : (actualMaxLoss === null ? "―" : actualMaxLoss.toFixed(2));
@@ -1128,7 +1137,7 @@ function renderRiskRewardBlock(summaryEl, warningEl, { group, infinite, winInfo,
       verdictNote = "実際の最大損失額と、左の「一回の損切における上限額」を比較した結果です。\n実際の最大損失額が上限額以下なら「統計的に有利」、上回っていれば「統計的に不利」です。";
     }
     if (!infinite && winRate !== null) {
-      lossRateSub = `ITM発生率は${((1 - winRate) * 100).toFixed(1)}%まで`;
+      lossRateSub = `ITM${depthSuffix}発生率は${((1 - winRate) * 100).toFixed(1)}%まで`;
     }
   } else {
     breakEvenLabel = "損益分岐に必要な最低利益額(参考)";
@@ -1142,7 +1151,7 @@ function renderRiskRewardBlock(summaryEl, warningEl, { group, infinite, winInfo,
   // 勝率(売りは負けない確率、買いはITMを勝ちとした確率)は損益分岐の計算に使うため、サブ表示で併記する。
   const itmRateText = total === 0 ? "―" : (hitCount / total * 100).toFixed(1) + "%";
   const winRateName = group === "sell" ? "勝率(負けない確率)" : "勝率(ITMを勝ちとした確率)";
-  const winRateLabel = "ITM発生率";
+  const winRateLabel = `ITM${depthSuffix}発生率`;
   const winRateNote = "判定期間内のいずれかの営業日の終値が、設定した深さ(権利行使価格±◯ドル)以上のITMに届いたエントリー日の割合です。\n「分析結果」「エントリー条件で絞り込み」の「ITM発生エントリー数の割合」と同じ向きの数字です。\n深さが空欄(0ドル)なら「一度でもITMになった割合」になります。\n"
     + (group === "sell"
       ? "売りはITMが少ないほど有利です(届いたエントリー=負け)。下に併記した勝率(負けない確率)は、100%−この率です。"

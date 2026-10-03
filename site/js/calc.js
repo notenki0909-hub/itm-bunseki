@@ -278,7 +278,7 @@ const CONDITION_WITHIN_DAYS = 7;
  * computeItmAnalysisと同じ判定基準を使うが、対象エントリーを値動き条件でフィルタする点が異なる。
  *
  * @param {number[]} closes
- * @param {{ratio:number, itmWhen:'below'|'above', window:number,
+ * @param {{ratio:number, itmWhen:'below'|'above', window:number, depthPct?:number,
  *           conditionMode:'lookback'|'countWithin7', momentumLookback:number,
  *           momentumDirection:'down'|'up', momentumThresholdPct:number, minMatchDays:number}} params
  * @returns {{matchedCount:number, matchedItmCount:number, matchedItmProb:number|null,
@@ -287,7 +287,7 @@ const CONDITION_WITHIN_DAYS = 7;
 export function computeConditionalItmAnalysis(closes, params) {
   const {
     ratio, itmWhen, window, momentumDirection, momentumThresholdPct,
-    conditionMode = "lookback", momentumLookback, minMatchDays,
+    conditionMode = "lookback", momentumLookback, minMatchDays, depthPct = 0,
   } = params;
   const n = closes.length;
   const isBelow = itmWhen === "below";
@@ -327,7 +327,9 @@ export function computeConditionalItmAnalysis(closes, params) {
     let itmDaysInWindow = 0;
     for (let d = 1; d <= window; d++) {
       const fwd = closes[i + d] / strike - 1;
-      const itm = isBelow ? fwd < 0 : fwd > 0;
+      const itm = depthPct > 0
+        ? (isBelow ? fwd <= -depthPct : fwd >= depthPct)
+        : (isBelow ? fwd < 0 : fwd > 0);
       if (itm) { itmAny = true; itmDaysInWindow++; }
     }
     if (itmAny) matchedItmCount++;
