@@ -1451,7 +1451,7 @@ function setupStatExplain() {
 
 // 各エリア(カード)の見出しの右上に「閉じる/開く」ボタンを付ける。閉じると見出し行だけを残して
 // 折りたたむ。開閉の状態はブラウザに保存し、次回開いたときも引き継ぐ(全タブ共通)。
-// ヒートマップのマスをクリックすると、そのマスの説明(日付・深さなど。マスのdata-tip)を吹き出しで表示する。
+// ヒートマップのマス・営業日ごとのITM確率チャートの棒をクリックすると、その説明(日付・深さなど。data-tip属性)を吹き出しで表示する。
 // 別のマスをクリックするとそちらに移り、マス以外の場所をクリックする(またはEscを押す)と消える。
 // (以前はマウスを乗せると表示するtitle属性だったが、クリック操作に変更した。スマホのタップにも対応する)
 let cellTipEl = null;
@@ -1467,7 +1467,7 @@ function setupCellTip() {
   cellTipEl.hidden = true;
   document.body.appendChild(cellTipEl);
   document.addEventListener("click", (e) => {
-    const cell = e.target.closest && e.target.closest(".hm-cell[data-tip]");
+    const cell = e.target.closest && e.target.closest("[data-tip]");
     if (!cell) {
       if (!cellTipEl.contains(e.target)) hideCellTip();
       return;

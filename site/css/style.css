@@ -226,6 +226,9 @@ button:disabled{opacity:.6;cursor:default}
   border:1px solid var(--accent);border-radius:8px;font-size:12px;line-height:1.6;
   box-shadow:0 4px 14px rgba(0,0,0,.28);overflow-wrap:anywhere}
 .cell-tip[hidden]{display:none}
+/* 営業日ごとのITM確率チャート: 各営業日の列(透明な領域)をクリックすると説明を出す */
+.chart-hit{cursor:pointer}
+.chart-hit.hm-tip-active{fill:color-mix(in srgb,var(--accent) 12%,transparent)}
 .hm-legend{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--muted);margin-top:6px;flex-wrap:wrap}
 .hm-legend .hm-cell{cursor:default;flex:none}
 

@@ -45,6 +45,7 @@ export function renderDayProbChart(dayProb, group) {
   const barW = n > 0 ? (w - leftPad - rightPad) / n - barGap : 0;
 
   let bars = "";
+  let hits = ""; // クリックで説明を出すための、各営業日の列全体を覆う透明な領域(ITM率0%の棒もクリックできるように)
   let labels = "";
   const labelStep = Math.max(1, Math.ceil(n / 15));
 
@@ -54,7 +55,9 @@ export function renderDayProbChart(dayProb, group) {
     const barH = v === null ? 0 : Math.max(0, v) * chartH;
     const y = topPad + (chartH - barH);
     const color = v === null ? "var(--line)" : barColor(v, group);
-    bars += `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${barW.toFixed(1)}" height="${barH.toFixed(1)}" fill="${color}"><title>${i + 1}営業日後: ${v === null ? "データ不足" : (v * 100).toFixed(1) + "%"}</title></rect>`;
+    bars += `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${barW.toFixed(1)}" height="${barH.toFixed(1)}" fill="${color}"></rect>`;
+    const tip = `${i + 1}営業日後: ${v === null ? "データ不足" : (v * 100).toFixed(1) + "%"}`;
+    hits += `<rect class="chart-hit" data-tip="${tip}" x="${(x - barGap / 2).toFixed(1)}" y="${topPad}" width="${(barW + barGap).toFixed(1)}" height="${chartH}" fill="transparent"></rect>`;
     if ((i + 1) % labelStep === 0 || i === 0 || i === n - 1) {
       labels += `<text x="${(x + barW / 2).toFixed(1)}" y="${h - 6}" font-size="9" text-anchor="middle" fill="var(--muted)">${i + 1}</text>`;
     }
@@ -67,6 +70,6 @@ export function renderDayProbChart(dayProb, group) {
   }).join("");
 
   return `<svg viewBox="0 0 ${w} ${h}" class="chart" role="img" aria-label="過去の営業日ごとのITM確率">` +
-    gridLines + bars + labels +
+    gridLines + bars + hits + labels +
     `</svg>`;
 }
