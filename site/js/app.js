@@ -13,6 +13,7 @@ import {
 import { renderDayProbChart, DAY_PROB_BANDS } from "./chart.js";
 import { renderEntryHeatmap, ENTRY_HEATMAP_BANDS } from "./heatmap.js";
 import { initThemeBar } from "./theme.js";
+import { isPriceDataStale } from "./marketTime.js";
 import { addTickerToHistory, setupTickerHistoryDropdown, loadTickerHistory, mergeTickerHistory } from "./tickerHistory.js";
 
 // 複数銘柄・複数タイプを切り替えながら見比べられるよう「タブ」単位で状態を持つ。
@@ -107,6 +108,7 @@ function persistState() {
         ...tabRecipe(t),
         closesFull: t.closesFull,
         datesFull: t.datesFull,
+        fetchedAt: t.fetchedAt,
       })),
     };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
@@ -131,6 +133,7 @@ function loadFromSavedState() {
     applyRecipe(t, rec);
     t.closesFull = rec.closesFull || null;
     t.datesFull = rec.datesFull || null;
+    t.fetchedAt = rec.fetchedAt ?? null; // 古い保存状態には無い(=古いデータとして扱い、開いたときに取り直す)
     tabs.push(t);
   }
   const idx = Math.min(Math.max(payload.activeIndex || 0, 0), tabs.length - 1);
@@ -171,6 +174,7 @@ async function loadFromShareRecipes(recipes) {
       const data = await fetchHistory(t.symbol);
       t.closesFull = data.closes;
       t.datesFull = data.dates;
+      t.fetchedAt = data.fetchedAt ?? Date.now();
     } catch (e) {
       // このタブだけ取得失敗。「分析する」ボタンで再試行できる
     }
@@ -312,6 +316,7 @@ function newTabState() {
   return {
     id: nextTabId++,
     symbol: null,
+    fetchedAt: null,  // closesFullをサーバーが取得した時刻(UTCミリ秒)。古いかの判定に使う
     closesFull: null, // フェッチした生データ(最大件数)。期間セレクターはこれをローカルでスライスするだけ
     datesFull: null,  // closesFullと同じ並びの日付文字列
     typeKey: "put_sell",
@@ -400,6 +405,34 @@ function switchTab(id) {
   }
   renderTabBar();
   persistState();
+  refreshIfStale(t);
+}
+
+// タブを開いたとき、保存済みのデータが古ければ(取得時刻がデータ更新時刻より前なら)、
+// そのタブの銘柄だけを取り直して表示を更新する。取り直しの間は古いデータを表示したままにする。
+// 開いていないタブは取りにいかない。サーバー側にキャッシュがあれば、外部APIは叩かれない。
+async function refreshIfStale(t) {
+  if (!t || !t.symbol || !t.closesFull || t.refreshing) return;
+  if (!isStaleData(t.fetchedAt, t.datesFull)) return;
+  t.refreshing = true;
+  if (activeTabId === t.id) setStatus(`${t.symbol} の最新の株価データを確認中…（それまでは保存済みのデータを表示しています）`);
+  try {
+    const data = await fetchHistory(t.symbol);
+    t.closesFull = data.closes;
+    t.datesFull = data.dates;
+    t.fetchedAt = data.fetchedAt ?? Date.now();
+    persistState();
+    if (activeTabId === t.id) {
+      renderAll(t);
+      setStatus(`${t.symbol} の最新の株価データ（${data.dates[data.dates.length - 1]}まで）に更新しました`);
+    }
+  } catch (e) {
+    if (activeTabId === t.id) {
+      setStatus("最新の株価データの取得に失敗しました。保存済みのデータを表示しています（「分析する」で再試行できます）", true);
+    }
+  } finally {
+    t.refreshing = false;
+  }
 }
 
 function tabLabel(t) {
@@ -467,9 +500,16 @@ function setStatus(msg, isError) {
   els.status.classList.toggle("err", !!isError);
 }
 
+// データが「古いか」は、取得時刻がデータ更新時刻(米国市場の引けの1時間後)より前かで判定する
+// (marketTime.js。サーバー側のキャッシュも同じ判定)。
+function isStaleData(fetchedAt, dates) {
+  return isPriceDataStale(fetchedAt, dates && dates.length ? dates[dates.length - 1] : undefined);
+}
+
 async function fetchHistory(symbol) {
-  // 同一ブラウザ内で既に取得済みならAPIを叩かず使い回す(タブをまたいでも共有)
-  if (priceCache.has(symbol)) return priceCache.get(symbol);
+  // 同一ブラウザ内で既に取得済みで、まだ古くなければAPIを叩かず使い回す(タブをまたいでも共有)
+  const hit = priceCache.get(symbol);
+  if (hit && !isStaleData(hit.fetchedAt, hit.dates)) return hit;
   const res = await fetch(`/api/history?symbol=${encodeURIComponent(symbol)}`);
   const data = await res.json();
   if (!res.ok || data.error) throw new Error(data.error || `HTTP ${res.status}`);
@@ -497,6 +537,7 @@ async function onAnalyze() {
     t.symbol = data.symbol;
     t.closesFull = data.closes;
     t.datesFull = data.dates;
+    t.fetchedAt = data.fetchedAt ?? Date.now();
     setStatus(`${data.symbol} の${data.closes.length}日分の終値を取得しました`);
     addTickerToHistory(data.symbol);
     renderAll(t);
