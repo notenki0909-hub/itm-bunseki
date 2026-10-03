@@ -153,7 +153,9 @@ export function favorableProbToLevel(favorableProb, group) {
 
 /**
  * @param {number[]} closes 古い順の終値配列
- * @param {{ratio:number, itmWhen:'below'|'above', window:number, group:'sell'|'buy'}} params
+ * @param {{ratio:number, itmWhen:'below'|'above', window:number, group:'sell'|'buy', depthPct?:number}} params
+ *   depthPct: 権利行使価格から何割(例0.03=3%)以上深いITMを「ITM」とみなすか。0または省略なら、
+ *   従来どおり権利行使価格を超えた(下回った)時点でITMとみなす。
  * @param {string[]} [dates] closesと同じ並びの日付文字列(YYYY-MM-DD)。渡すとperEntryに日付が入る
  * @returns {{
  *   entryCount:number,
@@ -167,7 +169,7 @@ export function favorableProbToLevel(favorableProb, group) {
  * }}
  */
 export function computeItmAnalysis(closes, params, dates) {
-  const { ratio, itmWhen, window, group } = params;
+  const { ratio, itmWhen, window, group, depthPct = 0 } = params;
   const n = closes.length;
   const isBelow = itmWhen === "below";
 
@@ -185,7 +187,9 @@ export function computeItmAnalysis(closes, params, dates) {
     let itmDaysInWindow = 0;
     for (let d = 1; d <= window; d++) {
       const fwd = closes[i + d] / strike - 1;
-      const itm = isBelow ? fwd < 0 : fwd > 0;
+      const itm = depthPct > 0
+        ? (isBelow ? fwd <= -depthPct : fwd >= depthPct)
+        : (isBelow ? fwd < 0 : fwd > 0);
       dayTotalCounts[d]++;
       if (itm) {
         dayItmCounts[d]++;

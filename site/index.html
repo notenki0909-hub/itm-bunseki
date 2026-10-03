@@ -98,8 +98,23 @@
   </div>
 
   <div id="result" class="card" hidden>
-    <h2 style="margin:0 0 10px;font-size:16px"><span id="symbolLabel"></span> の分析結果<span id="resultTypeLabel" style="font-size:14px;font-weight:400;color:var(--muted)"></span></h2>
-    <p class="sub" style="margin:0 0 10px"><b>判定基準：</b>権利行使価格（各エントリー日の終値 × 比率）だけを基準に、集計期間内の<b>全エントリー日</b>でITMになったかを判定します。</p>
+    <div class="result-head">
+      <h2 style="margin:0;font-size:16px"><span id="symbolLabel"></span> の分析結果<span id="resultTypeLabel" style="font-size:14px;font-weight:400;color:var(--muted)"></span></h2>
+      <div class="field result-depth">
+        <label for="rrDepthInput" data-target="resultExplain"
+          data-note="権利行使価格からどれだけ深いITMに届いたら「ITM」とみなすかを、ドルで入力します。
+プット系は権利行使価格−◯ドル以下、コール系は権利行使価格＋◯ドル以上の終値になった日が「ITM」です。
+入力したドルは、現在の権利行使価格に対する割合(%)に換算して右隣に表示します。過去の各エントリーにも同じ割合を当てはめて判定します(過去は株価水準が今と違うため、ドルのまま当てはめずに割合にそろえています)。
+空欄(0ドル)なら、従来どおり権利行使価格を超えた(下回った)時点でITMです。
+この入力に沿って、ITM発生エントリー数・割合・延べ日数、総合判定、「過去の営業日ごとのITM確率」「エントリー日ごとのITM状況」が計算されます。リスクリワード分析にも同じ深さが使われます。
+判定は日々の終値のみで、日中の高値・安値は見ていません。">判定する深さ(権利行使価格±◯ドル)</label>
+        <div class="field-inline">
+          <input id="rrDepthInput" type="number" step="0.01" min="0" placeholder="空欄=0ドル">
+          <span class="field-hint" id="rrDepthPct"></span>
+        </div>
+      </div>
+    </div>
+    <p class="sub" style="margin:0 0 10px"><b>判定基準：</b>権利行使価格（各エントリー日の終値 × 比率）だけを基準に、集計期間内の<b>全エントリー日</b>でITMになったかを判定します。右上の「判定する深さ」を入力した場合は、権利行使価格から◯ドル以上深いITMになったかを判定します（空欄＝一度でもITM）。</p>
     <div class="summary">
       <div class="stat" data-target="resultExplain" data-note="集計期間の営業日日数から、判定期間の分を差し引いた日数です。
 この日数分が、実際に計算できる「取引開始日」の件数になります。">
@@ -121,14 +136,14 @@ ITMが良い結果か悪い結果かは取引タイプにより異なります�
     <div class="hm-legend" id="badgeLegend"></div>
 
     <div class="chart-title" id="dayProbTitle" data-target="dayProbExplain"
-      data-note="各営業日について、それまでのエントリー日のうち何%がその日までにITMになっていたかを示します。
-バーの色はその日のITM率（絶対値）を6段階で表したもので、有利/不利の向きとは連動していません。">過去の営業日ごとのITM確率</div>
+      data-note="各営業日について、エントリー日のうち何%が、その日の終値でITMになっていたかを示します（判定する深さを入力した場合は、その深さ以上のITM）。
+バーの色はその日のITM率（絶対値）を6段階で表したもので、有利/不利の向きとは連動していません。">過去の営業日ごとのITM<span id="dayProbDepth"></span>確率</div>
     <div id="chartWrap"></div>
     <div class="hm-legend" id="dayProbLegend"></div>
 
     <div class="chart-title" id="entryHeatmapTitle" data-target="entryHeatmapExplain"
-      data-note="集計期間内の取引開始日を1マスずつ時系列に並べ、その日から判定期間内でITMだった日数を色で表したものです。
-色は日数（絶対値）を7段階で表したもので、有利/不利の向きとは連動していません。">エントリー日ごとのITM状況（マウスを乗せると日付を表示）</div>
+      data-note="集計期間内の取引開始日を1マスずつ時系列に並べ、その日から判定期間内でITMだった日数を色で表したものです（判定する深さを入力した場合は、その深さ以上のITMだった日数）。
+色は日数（絶対値）を7段階で表したもので、有利/不利の向きとは連動していません。">エントリー日ごとのITM<span id="heatmapDepth"></span>状況（マウスを乗せると日付を表示）</div>
     <div id="heatmapWrap"></div>
     <div class="hm-legend" id="entryHeatmapLegend"></div>
 
@@ -202,26 +217,13 @@ ITMが良い結果か悪い結果かは取引タイプにより異なります�
     <p class="sub" style="margin:0 0 10px"><b>リスクリワードとは：</b><br>
       ・1回の負けで失う額が小さく、1回の勝ちで得る額が大きいほど → 必要な勝率は低くて済む（多少負けが込んでも平気）<br>
       ・1回の負けで失う額が大きく、1回の勝ちで得る額が小さいほど → かなり高い勝率がないと割に合わない</p>
-    <p class="sub" style="margin:0 0 10px"><b>考え方：</b>判定期間内のいずれかの営業日の終値が、権利行使価格から指定した深さ（◯ドル）以上のITMに届いたエントリー日を、売りは「負け」・買いは「勝ち」とみなして、ITM発生率（分析結果と同じ向きの率。勝率も併記）を算出します。受取/支払いプレミアム額と利確割合（上部の入力欄に入力した注文時の条件）と組み合わせて、損益分岐の目安と比較します。</p>
+    <p class="sub" style="margin:0 0 10px"><b>考え方：</b>判定期間内のいずれかの営業日の終値が、権利行使価格から指定した深さ（上の「分析結果」欄の「判定する深さ」）以上のITMに届いたエントリー日を、売りは「負け」・買いは「勝ち」とみなして、ITM発生率（分析結果と同じ向きの率。勝率も併記）を算出します。受取/支払いプレミアム額と利確割合（上部の入力欄に入力した注文時の条件）と組み合わせて、損益分岐の目安と比較します。</p>
     <div class="form-row">
       <div class="field">
         <label for="rrVariantSelect" data-target="riskRewardExplain"
           data-note="上の「取引タイプ」に対応する、単体とスプレッドの2種類から選べます。
 （例: プット売なら「プット売り」または「ブルプット」）">取引の種類</label>
         <select id="rrVariantSelect"></select>
-      </div>
-      <div class="field">
-        <label for="rrDepthInput" data-target="riskRewardExplain"
-          data-note="権利行使価格からどれだけ深いITMに届いたら、売りは「負け」・買いは「勝ち」と判断するかを、ドルで入力します。
-プット系は権利行使価格−◯ドル以下、コール系は権利行使価格＋◯ドル以上に、判定期間内のいずれかの営業日の終値が届いたエントリー日が該当します。
-入力したドルは、現在の権利行使価格に対する割合(%)に換算して右隣に表示します。過去の各エントリーにも同じ割合を当てはめて判定します(過去は株価水準が今と違うため、ドルのまま当てはめずに割合にそろえています)。
-空欄(0ドル)なら、一度でもITMになれば該当します。
-(例: プット売りで10ドルを入力すると、権利行使価格より10ドル以上下回った日があれば負け)
-判定は日々の終値のみで、日中の高値・安値は見ていません。">判定する深さ(権利行使価格±◯ドル)</label>
-        <div class="field-inline">
-          <input id="rrDepthInput" type="number" step="0.01" min="0" placeholder="空欄=0ドル">
-          <span class="field-hint" id="rrDepthPct"></span>
-        </div>
       </div>
     </div>
     <div class="form-row">

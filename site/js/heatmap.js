@@ -60,13 +60,13 @@ function groupByMonth(perEntry) {
  * @param {'sell'|'buy'} group 色の基準を売り/買いで切り替えるために使う
  * @returns {string} HTML文字列
  */
-export function renderEntryHeatmap(perEntry, window, group) {
+export function renderEntryHeatmap(perEntry, window, group, depthLabel = "") {
   const months = groupByMonth(perEntry);
 
   const blocks = months.map(({ yearMonth, entries }) => {
     const cells = entries.map(({ date, itmDaysInWindow }) => {
       const dateLabel = date || "―";
-      const title = `${dateLabel}: 判定期間${window}日中${itmDaysInWindow}日ITM`;
+      const title = `${dateLabel}: 判定期間${window}日中${itmDaysInWindow}日ITM${depthLabel}`;
       return `<div class="hm-cell" style="background:${cellColor(itmDaysInWindow, group)}" title="${title}"></div>`;
     }).join("");
     const label = yearMonth ? monthLabel(yearMonth) : "―";

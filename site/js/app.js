@@ -244,6 +244,8 @@ const els = {
   chartWrap: document.getElementById("chartWrap"),
   heatmapWrap: document.getElementById("heatmapWrap"),
   symbolLabel: document.getElementById("symbolLabel"),
+  dayProbDepth: document.getElementById("dayProbDepth"),
+  heatmapDepth: document.getElementById("heatmapDepth"),
   resultTypeLabel: document.getElementById("resultTypeLabel"),
   badgeLegend: document.getElementById("badgeLegend"),
   dayProbLegend: document.getElementById("dayProbLegend"),
@@ -604,16 +606,35 @@ function renderTodayCard(t) {
   els.todayCard.hidden = false;
 }
 
+// 判定する深さ(ドル)を、現在の権利行使価格(本日の終値×比率)に対する割合に換算する。
+// 過去の各エントリーにも同じ割合を当てはめる(過去の株価水準が今と違っても公平に比べられるように
+// するため)。分析結果・リスクリワード分析で共通に使う。
+function depthInfo(t, closes) {
+  const depthDollar = t.rrDepth ?? 0;
+  const todayStrike = closes[closes.length - 1] * t.ratio;
+  const depthPct = todayStrike > 0 ? depthDollar / todayStrike : 0;
+  return { depthDollar, todayStrike, depthPct };
+}
+
 function renderMainAnalysis(t) {
   const closes = periodClosesOf(t);
   const dates = periodDatesOf(t);
   const type = OPTION_TYPES[t.typeKey];
+  const { depthDollar, todayStrike, depthPct } = depthInfo(t, closes);
   const analysis = computeItmAnalysis(closes, {
     ratio: t.ratio,
     itmWhen: type.itmWhen,
     window: t.windowDays,
     group: typeGroup(t.typeKey),
+    depthPct,
   }, dates);
+
+  els.rrDepthPct.textContent = depthDollar > 0
+    ? `＝ 権利行使価格の約${(depthPct * 100).toFixed(2)}%（現在の権利行使価格${todayStrike.toFixed(2)}に対して）`
+    : "＝ 0%（一度でもITMになれば該当）";
+  const depthTitle = depthDollar > 0 ? `（${depthDollar}ドル）` : "";
+  els.dayProbDepth.textContent = depthTitle;
+  els.heatmapDepth.textContent = depthTitle;
 
   els.symbolLabel.textContent = t.symbol;
   els.resultTypeLabel.textContent = `：${type.label}、×${t.ratio}`;
@@ -627,7 +648,8 @@ function renderMainAnalysis(t) {
     : (analysis.overallItmProb * 100).toFixed(1) + "%";
   const group = typeGroup(t.typeKey);
   els.chartWrap.innerHTML = renderDayProbChart(analysis.dayProb, group);
-  els.heatmapWrap.innerHTML = renderEntryHeatmap(analysis.perEntry, t.windowDays, group);
+  els.heatmapWrap.innerHTML = renderEntryHeatmap(analysis.perEntry, t.windowDays, group,
+    depthDollar > 0 ? `(${depthDollar}ドル以上)` : "");
   els.badgeLegend.innerHTML = renderBadgeLegend(group);
   els.dayProbLegend.innerHTML = renderColorLegend(DAY_PROB_BANDS[group]);
   els.entryHeatmapLegend.innerHTML = renderColorLegend(ENTRY_HEATMAP_BANDS[group]);
@@ -887,14 +909,7 @@ function renderRiskReward(t) {
   const group = typeGroup(t.typeKey);
   const infinite = isInfiniteLossVariant(t.typeKey, t.rrVariant);
 
-  // 判定する深さ(ドル)を、現在の権利行使価格に対する割合に換算し、過去の各エントリーにも
-  // 同じ割合を当てはめる(過去の株価水準が今と違っても公平に比べられるようにするため)。
-  const depthDollar = t.rrDepth ?? 0;
-  const todayStrike = closes[closes.length - 1] * t.ratio;
-  const depthPct = todayStrike > 0 ? depthDollar / todayStrike : 0;
-  els.rrDepthPct.textContent = depthDollar > 0
-    ? `＝ 権利行使価格の約${(depthPct * 100).toFixed(2)}%（現在の権利行使価格${todayStrike.toFixed(2)}に対して）`
-    : "＝ 0%（一度でもITMになれば該当）";
+  const { depthPct, todayStrike } = depthInfo(t, closes);
   // プット売り(単体)は株購入価格欄を自動値(現在の権利行使価格)で表示する。
   // 自動でなくなったとき(取引の種類を切り替えたとき)は、入力済みの値に戻す。
   if (isAutoStockPrice(t.typeKey, t.rrVariant)) {
