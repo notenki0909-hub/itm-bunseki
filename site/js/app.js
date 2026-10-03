@@ -281,6 +281,10 @@ const els = {
   orderTicker: document.getElementById("orderTicker"),
   orderClose: document.getElementById("orderClose"),
   orderLine: document.getElementById("orderLine"),
+  orderTypeLabel: document.getElementById("orderTypeLabel"),
+  orderMaxLossField: document.getElementById("orderMaxLossField"),
+  orderMaxLoss: document.getElementById("orderMaxLoss"),
+  orderMaxLossHint: document.getElementById("orderMaxLossHint"),
   orderDepthPct: document.getElementById("orderDepthPct"),
   spBtn: document.getElementById("spBtn"),
   rrPayPremiumInput: document.getElementById("rrPayPremiumInput"),
@@ -1047,11 +1051,25 @@ function renderOrderCard(t) {
   const { todayStrike } = depthInfo(t, closes);
   const latest = closes[closes.length - 1];
 
+  els.orderTypeLabel.textContent = `：${isSp ? labels.spread : labels.naked}`;
   els.orderTicker.textContent = t.symbol || "―";
   els.orderClose.textContent = `最新終値 ${latest.toFixed(2)}（${dates[dates.length - 1]}）`;
   els.orderDepthPct.textContent = els.rrDepthPct.textContent;
 
   const fmt = (v) => v.toFixed(2);
+  // 売り系スプレッド(ブルプット/ベアコール)は、最大損失額(差額−受取プレミアム額)を利確割合の右に表示する
+  const showMaxLoss = group === "sell" && isSp;
+  els.orderMaxLossField.hidden = !showMaxLoss;
+  if (showMaxLoss) {
+    const width = lossBasisOf(t);
+    if (width !== null && t.rrPremium !== null) {
+      els.orderMaxLoss.textContent = fmt(width - t.rrPremium);
+      els.orderMaxLossHint.textContent = `差額${fmt(width)}−受取${fmt(t.rrPremium)}`;
+    } else {
+      els.orderMaxLoss.textContent = "―";
+      els.orderMaxLossHint.textContent = "差額と受取プレミアム額を入力すると表示";
+    }
+  }
   const pc = type.itmWhen === "below" ? "P" : "C";
   let strikeText;
   if (!isSp) {

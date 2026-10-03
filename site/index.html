@@ -130,7 +130,7 @@ ITMが良い結果か悪い結果かは取引タイプにより異なります�
 
   <div id="orderCard" class="card" hidden>
     <div class="order-head">
-      <h2 style="margin:0;font-size:16px">注文内容</h2>
+      <h2 style="margin:0;font-size:16px">注文内容<span id="orderTypeLabel" style="font-size:14px;font-weight:400;color:var(--muted)"></span></h2>
       <button id="spBtn" type="button" class="sp-btn" aria-pressed="false" title="単体注文とスプレッド(ブルプット・ベアコール・ブルコール・ベアプット)の注文を切り替えます。使わない側の入力欄は非表示になり、入力値は保持されます">SP</button>
     </div>
     <p class="sub" style="margin:0 0 10px">注文の条件をここにまとめます。上の入力欄と連動していて、どちらで変更しても同じ値になります。ティッカーだけは、一番上の入力欄で変更して「分析する」を押してください。「ブルプットへ切替」などのボタンで、スプレッド注文（SP）と単体注文を切り替えられます。</p>
@@ -178,6 +178,13 @@ ITMが良い結果か悪い結果かは取引タイプにより異なります�
 受け取ったプレミアムのうち何%を利益として確定させるかを入力してください。
 （未入力の場合は100%＝満期まで保有して受取プレミアムを丸々得たものとして計算します）">利確割合(%)</label>
         <input id="rrProfitRatioInput" type="number" step="1" min="0" max="100" placeholder="未入力=100%">
+      </div>
+      <div class="field" id="orderMaxLossField" hidden>
+        <label data-target="riskRewardExplain"
+          data-note="売り系スプレッド(ブルプット/ベアコール)の、満期まで持った場合の最大損失額です。
+権利行使価格の差額−受取プレミアム額で自動計算します（差額と受取プレミアム額を入力すると表示されます）。
+利確割合の影響は受けません。リスクリワード分析の「実際の最大損失額」と同じ値です。">最大損失額</label>
+        <div class="field-inline"><b id="orderMaxLoss" class="order-ticker">―</b><span class="field-hint" id="orderMaxLossHint"></span></div>
       </div>
       <div class="field" data-only="buy">
         <label for="rrPayPremiumInput" data-target="riskRewardExplain"
