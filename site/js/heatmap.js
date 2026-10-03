@@ -79,10 +79,9 @@ export function renderEntryHeatmap(perEntry, window, group, depthLabel = "") {
 
 // 最大ITM深さ・最大OTM深さのそれぞれについて、最大になった日と「エントリーから何営業日後か」を、
 // マスをクリックしたときに出す文章にする(どちらが先に起きたかを見るため。両方のヒートマップで同じ文章を出す)。
-function extremesText(entry, todayStrike) {
-  const dollar = (pct) => (pct * todayStrike).toFixed(2);
+function extremesText(entry) {
   const part = (label, pct, day, date) => (pct > 0 && day > 0
-    ? `${label} ${(pct * 100).toFixed(1)}%（約${dollar(pct)}ドル。${date || "―"}、エントリーから${day}営業日後）`
+    ? `${label} ${(pct * 100).toFixed(1)}%（${date || "―"}、エントリーから${day}営業日後）`
     : `${label}なし`);
   return `${part("最大ITM深さ", entry.maxDepthPct, entry.maxDepthDay, entry.maxDepthDate)}／${part("最大OTM深さ", entry.maxOtmPct, entry.maxOtmDay, entry.maxOtmDate)}`;
 }
@@ -126,19 +125,18 @@ function depthColor(depthPct, group) {
  * @param {{date:string|null, maxDepthPct:number}[]} perEntry
  * @param {number} window 判定期間(営業日)
  * @param {'sell'|'buy'} group
- * @param {{depthPct:number, depthDollar:number, todayStrike:number}} opts
+ * @param {{depthPct:number, depthDollar:number}} opts
  *   depthPct/depthDollar: 「判定する深さ」(割合/ドル)。0なら印は付けない。
- *   todayStrike: 現在の権利行使価格(%をドルに換算して表示するため)
  */
 export function renderDepthHeatmap(perEntry, window, group, opts) {
-  const { depthPct = 0, depthDollar = 0, todayStrike = 0 } = opts || {};
+  const { depthPct = 0, depthDollar = 0 } = opts || {};
   const months = groupByMonth(perEntry);
   const blocks = months.map(({ yearMonth, entries }) => {
     const cells = entries.map((entry) => {
       const { date, maxDepthPct } = entry;
       const dateLabel = date || "―";
       const marked = depthPct > 0 && maxDepthPct >= depthPct - 1e-12;
-      let title = `${dateLabel}（判定期間${window}日中）: ${extremesText(entry, todayStrike)}`;
+      let title = `${dateLabel}（判定期間${window}日中）: ${extremesText(entry)}`;
       if (marked) title += `／判定する深さ(${depthDollar}ドル)に届きました`;
       return `<div class="hm-cell hm-click${marked ? " hm-mark" : ""}" style="background:${depthColor(maxDepthPct, group)}" data-tip="${title}"></div>`;
     }).join("");
@@ -185,16 +183,14 @@ function otmColor(otmPct, group) {
  * @param {{date:string|null, maxOtmPct:number}[]} perEntry
  * @param {number} window 判定期間(営業日)
  * @param {'sell'|'buy'} group
- * @param {{todayStrike:number}} opts 現在の権利行使価格(%をドルに換算して表示するため)
  */
 export function renderOtmHeatmap(perEntry, window, group, opts) {
-  const { todayStrike = 0 } = opts || {};
   const months = groupByMonth(perEntry);
   const blocks = months.map(({ yearMonth, entries }) => {
     const cells = entries.map((entry) => {
       const { date, maxOtmPct } = entry;
       const dateLabel = date || "―";
-      const title = `${dateLabel}（判定期間${window}日中）: ${extremesText(entry, todayStrike)}`;
+      const title = `${dateLabel}（判定期間${window}日中）: ${extremesText(entry)}`;
       return `<div class="hm-cell hm-click" style="background:${otmColor(maxOtmPct, group)}" data-tip="${title}"></div>`;
     }).join("");
     const label = yearMonth ? monthLabel(yearMonth) : "―";

@@ -751,12 +751,12 @@ function renderMainAnalysis(t) {
   els.dayProbLegend.innerHTML = renderColorLegend(DAY_PROB_BANDS[group]);
   els.entryHeatmapLegend.innerHTML = renderColorLegend(ENTRY_HEATMAP_BANDS[group]);
   els.depthHeatmapWrap.innerHTML = renderDepthHeatmap(analysis.perEntry, t.windowDays, group,
-    { depthPct, depthDollar, todayStrike });
+    { depthPct, depthDollar });
   els.depthHeatmapLegend.innerHTML = renderColorLegend(DEPTH_HEATMAP_BANDS[group])
     + (depthDollar > 0
       ? `<span class="hm-cell hm-mark" style="background:var(--card)"></span><span>判定する深さ（${depthDollar}ドル）に届いた日</span>`
       : "");
-  els.otmHeatmapWrap.innerHTML = renderOtmHeatmap(analysis.perEntry, t.windowDays, group, { todayStrike });
+  els.otmHeatmapWrap.innerHTML = renderOtmHeatmap(analysis.perEntry, t.windowDays, group);
   els.otmHeatmapLegend.innerHTML = renderColorLegend(OTM_HEATMAP_BANDS[group]);
   els.result.hidden = false;
 }
