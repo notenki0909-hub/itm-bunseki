@@ -48,8 +48,8 @@ function tabRecipe(t) {
     momentumThresholdPct: t.momentumThresholdPct,
     rrVariant: t.rrVariant,
     rrDepth: t.rrDepth,
-    rrLossBasis: t.rrLossBasis,
     rrPremium: t.rrPremium,
+    rrPayPremium: t.rrPayPremium,
     rrProfitRatio: t.rrProfitRatio,
     rrCutLoss: t.rrCutLoss,
     rrExpectedGain: t.rrExpectedGain,
@@ -71,18 +71,30 @@ function applyRecipe(t, rec) {
     momentumThresholdPct: rec.momentumThresholdPct ?? t.momentumThresholdPct,
     rrVariant: rec.rrVariant || t.rrVariant,
     rrDepth: rec.rrDepth ?? t.rrDepth,
-    rrLossBasis: rec.rrLossBasis ?? t.rrLossBasis,
     rrPremium: rec.rrPremium ?? t.rrPremium,
+    rrPayPremium: rec.rrPayPremium ?? t.rrPayPremium,
     rrProfitRatio: rec.rrProfitRatio ?? t.rrProfitRatio,
     rrCutLoss: rec.rrCutLoss ?? t.rrCutLoss,
     rrExpectedGain: rec.rrExpectedGain ?? t.rrExpectedGain,
     rrSpreadWidth: rec.rrSpreadWidth ?? t.rrSpreadWidth,
   });
-  // 旧仕様では買い系の支払いプレミアム額をrrLossBasisに保存していた。プレミアム額を
-  // 上部の1つの入力欄(rrPremium)に集約したため、古い保存状態・共有リンクは引き継ぐ。
-  if (typeGroup(t.typeKey) === "buy" && (rec.rrPremium === null || rec.rrPremium === undefined)
+  // 古い保存状態・共有リンクの引き継ぎ。
+  //  - 買い系の支払いプレミアム額は、以前はrrLossBasis(さらに前はrrPremium)に保存していた。
+  //    今は専用のrrPayPremiumに保存する(受取プレミアムと意味が違うため、別々に持つ)。
+  //  - 売り系スプレッドのスプレッド幅は、以前はrrLossBasisに保存していた。今はrrSpreadWidthに統一。
+  if (rec.rrPayPremium === null || rec.rrPayPremium === undefined) {
+    if (typeGroup(t.typeKey) === "buy") {
+      const legacy = rec.rrPremium ?? rec.rrLossBasis;
+      if (legacy !== null && legacy !== undefined) {
+        t.rrPayPremium = legacy;
+        t.rrPremium = null;
+      }
+    }
+  }
+  if ((rec.rrSpreadWidth === null || rec.rrSpreadWidth === undefined)
+      && typeGroup(t.typeKey) === "sell" && t.rrVariant === "spread"
       && rec.rrLossBasis !== null && rec.rrLossBasis !== undefined) {
-    t.rrPremium = rec.rrLossBasis;
+    t.rrSpreadWidth = rec.rrLossBasis;
   }
 }
 
@@ -265,15 +277,16 @@ const els = {
   todayMatchBadge: document.getElementById("todayMatchBadge"),
 
   riskRewardCard: document.getElementById("riskRewardCard"),
-  rrVariantSelect: document.getElementById("rrVariantSelect"),
+  orderCard: document.getElementById("orderCard"),
+  orderTicker: document.getElementById("orderTicker"),
+  orderClose: document.getElementById("orderClose"),
+  orderLine: document.getElementById("orderLine"),
+  orderDepthPct: document.getElementById("orderDepthPct"),
+  spBtn: document.getElementById("spBtn"),
+  rrPayPremiumInput: document.getElementById("rrPayPremiumInput"),
   rrDepthInput: document.getElementById("rrDepthInput"),
   rrDepthPct: document.getElementById("rrDepthPct"),
   rrBreakEvenSummary: document.getElementById("rrBreakEvenSummary"),
-  rrLossBasisInput: document.getElementById("rrLossBasisInput"),
-  rrLossBasisLabel: document.getElementById("rrLossBasisLabel"),
-  rrLossBasisField: document.getElementById("rrLossBasisField"),
-  rrProfitRatioField: document.getElementById("rrProfitRatioField"),
-  rrPremiumLabel: document.getElementById("rrPremiumLabel"),
   rrPremiumInput: document.getElementById("rrPremiumInput"),
   rrProfitRatioInput: document.getElementById("rrProfitRatioInput"),
   rrInfiniteNote: document.getElementById("rrInfiniteNote"),
@@ -281,13 +294,9 @@ const els = {
   rrBaseWarning: document.getElementById("rrBaseWarning"),
   rrCondSummary: document.getElementById("rrCondSummary"),
   rrCondWarning: document.getElementById("rrCondWarning"),
-  rrSpreadWidthField: document.getElementById("rrSpreadWidthField"),
   rrSpreadWidthInput: document.getElementById("rrSpreadWidthInput"),
-  rrExpectedGainField: document.getElementById("rrExpectedGainField"),
   rrExpectedGainInput: document.getElementById("rrExpectedGainInput"),
-  rrExpectedGainWarning: document.getElementById("rrExpectedGainWarning"),
   rrCutLossInput: document.getElementById("rrCutLossInput"),
-  rrCutLossWarning: document.getElementById("rrCutLossWarning"),
   rrCutLossSummary: document.getElementById("rrCutLossSummary"),
 };
 
@@ -312,8 +321,8 @@ function newTabState() {
     momentumThresholdPct: 5,
     rrVariant: "naked",
     rrDepth: null,
-    rrLossBasis: null,
     rrPremium: null,
+    rrPayPremium: null,
     rrProfitRatio: null,
     rrCutLoss: null,
     rrExpectedGain: null,
@@ -361,20 +370,17 @@ function switchTab(id) {
   els.momentumThresholdInput.value = t.momentumThresholdPct;
   updateConditionModeUI(t.conditionMode);
 
-  initRiskRewardVariantOptions(t.typeKey);
-  els.rrVariantSelect.value = t.rrVariant;
   els.rrDepthInput.value = t.rrDepth ?? "";
-  els.rrLossBasisInput.value = t.rrLossBasis ?? "";
-  delete els.rrLossBasisInput.dataset.auto;
   els.rrPremiumInput.value = t.rrPremium ?? "";
+  els.rrPayPremiumInput.value = t.rrPayPremium ?? "";
   els.rrProfitRatioInput.value = t.rrProfitRatio ?? "";
   els.rrCutLossInput.value = t.rrCutLoss ?? "";
   els.rrExpectedGainInput.value = t.rrExpectedGain ?? "";
   els.rrSpreadWidthInput.value = t.rrSpreadWidth ?? "";
-  els.rrCutLossWarning.hidden = true;
-  els.rrExpectedGainWarning.hidden = true;
+  setWarn("rrCutLoss", null);
+  setWarn("rrExpectedGain", null);
   updateRiskRewardInputUI(t.typeKey, t.rrVariant);
-  updateCutLossInputUI(t.typeKey, t.rrVariant);
+  syncMirrors();
   setStatus("");
 
   if (t.closesFull) {
@@ -383,6 +389,7 @@ function switchTab(id) {
     els.volatilityCard.hidden = true;
     els.todayCard.hidden = true;
     els.result.hidden = true;
+    els.orderCard.hidden = true;
     els.conditionCard.hidden = true;
     els.riskRewardCard.hidden = true;
   }
@@ -478,6 +485,7 @@ async function onAnalyze() {
   els.volatilityCard.hidden = true;
   els.todayCard.hidden = true;
   els.result.hidden = true;
+  els.orderCard.hidden = true;
   els.conditionCard.hidden = true;
   try {
     const data = await fetchHistory(symbol);
@@ -499,7 +507,6 @@ async function onAnalyze() {
 function onFormChange() {
   const t = activeTab();
   if (!t) return;
-  const typeChanged = t.typeKey !== els.typeSelect.value;
   t.typeKey = els.typeSelect.value;
   t.ratio = Number(els.ratioInput.value) || OPTION_TYPES[t.typeKey].ratio;
   t.windowDays = Number(els.windowSelect.value) || DEFAULT_WINDOW;
@@ -511,26 +518,17 @@ function onFormChange() {
   t.momentumThresholdPct = Number(els.momentumThresholdInput.value) || 0;
   updateConditionModeUI(t.conditionMode);
 
-  if (typeChanged) {
-    // 取引タイプが変わると「取引の種類」の選択肢のラベル(単体/スプレッド名)が
-    // 変わるため作り直す。選択自体(単体 or スプレッド)は維持する。
-    initRiskRewardVariantOptions(t.typeKey);
-    els.rrVariantSelect.value = t.rrVariant;
-  }
-  t.rrVariant = els.rrVariantSelect.value;
   t.rrDepth = els.rrDepthInput.value === "" ? null : Math.max(0, Number(els.rrDepthInput.value));
-  if (!els.rrLossBasisInput.dataset.auto) {
-    t.rrLossBasis = els.rrLossBasisInput.value === "" ? null : Number(els.rrLossBasisInput.value);
-  }
   t.rrPremium = els.rrPremiumInput.value === "" ? null : Number(els.rrPremiumInput.value);
+  t.rrPayPremium = els.rrPayPremiumInput.value === "" ? null : Number(els.rrPayPremiumInput.value);
   t.rrProfitRatio = els.rrProfitRatioInput.value === "" ? null : Number(els.rrProfitRatioInput.value);
   t.rrCutLoss = els.rrCutLossInput.value === "" ? null : Number(els.rrCutLossInput.value);
   t.rrExpectedGain = els.rrExpectedGainInput.value === "" ? null : Number(els.rrExpectedGainInput.value);
   t.rrSpreadWidth = els.rrSpreadWidthInput.value === "" ? null : Number(els.rrSpreadWidthInput.value);
   updateRiskRewardInputUI(t.typeKey, t.rrVariant);
-  updateCutLossInputUI(t.typeKey, t.rrVariant);
 
   if (t.closesFull) renderAll(t);
+  syncMirrors();
   renderTabBar();
   persistState();
 }
@@ -557,6 +555,7 @@ function renderAll(t) {
   renderVolatilityCard(t);
   renderTodayCard(t);
   renderMainAnalysis(t);
+  renderOrderCard(t);
   renderConditionCard(t);
   renderRiskReward(t);
 }
@@ -721,69 +720,52 @@ function renderConditionCard(t) {
   els.conditionCard.hidden = false;
 }
 
-// 「取引の種類」プルダウンの選択肢を、上部の取引タイプに合わせて
-// 単体/スプレッドの2択に作り直す(ラベルだけが変わる。値は常にnaked/spread)。
-function initRiskRewardVariantOptions(typeKey) {
-  const labels = RISK_VARIANT_LABELS[typeKey] || RISK_VARIANT_LABELS.put_sell;
-  els.rrVariantSelect.innerHTML =
-    `<option value="naked">${labels.naked}</option><option value="spread">${labels.spread}</option>`;
-}
-
 // プット売り(単体)の株購入価格は、権利行使される価格＝現在の権利行使価格(本日の終値×比率)
 // そのものなので、入力させず自動で使う。
 function isAutoStockPrice(typeKey, variant) {
   return typeKey === "put_sell" && variant === "naked";
 }
 
-// リスクリワード分析で使う「損失額入力欄」相当の値。プット売り(単体)は自動計算、他は入力値。
+// リスクリワード分析で使う「満期まで保有した場合の損失の基準額」。
+//   プット売り(単体): 株購入価格＝現在の権利行使価格(自動)
+//   売り系スプレッド(ブルプット/ベアコール): 権利行使価格の差額(スプレッド幅)
+//   コール売り(単体): 損失無限大のため使わない(null)
 function lossBasisOf(t) {
   if (isAutoStockPrice(t.typeKey, t.rrVariant)) {
     const c = t.closesFull;
     return c && c.length ? c[c.length - 1] * t.ratio : null;
   }
-  return t.rrLossBasis;
+  if (t.rrVariant === "spread") return t.rrSpreadWidth;
+  return null;
 }
 
-// 選択中の取引の種類(売り/買い、単体/スプレッド、コール売り単体=無限大)に応じて、
-// 損失額・受取プレミアムの入力欄のラベルと有効/無効を切り替える。
+// 注文時のプレミアム額。売り系は受取プレミアム額、買い系は支払いプレミアム額。
+function premiumOf(t) {
+  return typeGroup(t.typeKey) === "sell" ? t.rrPremium : t.rrPayPremium;
+}
+
+// 売り/買い・単体/SPで使う入力欄が違うため、body属性に現在の状態を書き込み、
+// CSS(data-only属性)で表示する欄を切り替える(使わない欄は非表示にし、値は保持する)。
 function updateRiskRewardInputUI(typeKey, variant) {
   const group = typeGroup(typeKey);
   const infinite = isInfiniteLossVariant(typeKey, variant);
-  const auto = isAutoStockPrice(typeKey, variant);
-
+  document.body.dataset.group = group;
+  document.body.dataset.mode = variant === "spread" ? "sp" : "naked";
   els.rrInfiniteNote.hidden = !infinite;
-  els.rrLossBasisInput.disabled = infinite || auto;
-  // 買い系は損失額＝支払いプレミアム額そのもの(上部のプレミアム額入力)なので、損失額入力欄は不要。
-  els.rrLossBasisField.hidden = group === "buy";
-  els.rrPremiumLabel.textContent = group === "buy" ? "支払いプレミアム額" : "受取プレミアム額";
-  // 利確割合は売り系のみ。同じ位置に、買い系では「見越し最大利益額」を表示する(切替は
-  // updateCutLossInputUIのrrExpectedGainField側)。
-  els.rrProfitRatioField.hidden = group === "buy";
 
-  if (infinite) {
-    els.rrLossBasisLabel.textContent = "損失額(無限大)";
-  } else if (variant === "spread") {
-    els.rrLossBasisLabel.textContent = "権利行使価格の差額(スプレッド幅)";
-  } else {
-    els.rrLossBasisLabel.textContent = auto ? "株購入価格(現在の権利行使価格・自動)" : "株購入価格";
-  }
-}
-
-// 「損切額から損益分岐を確認」欄の表示切り替え。見越し最大利益額は買い系のみ、
-// スプレッド幅(見越し最大利益額の上限計算用)はブルコール/ベアプットのみ表示する。
-function updateCutLossInputUI(typeKey, variant) {
-  const group = typeGroup(typeKey);
-  els.rrExpectedGainField.hidden = group !== "buy";
-  els.rrSpreadWidthField.hidden = !(group === "buy" && variant === "spread");
+  const labels = RISK_VARIANT_LABELS[typeKey] || RISK_VARIANT_LABELS.put_sell;
+  els.spBtn.textContent = `SP（${labels.spread}）`;
+  els.spBtn.setAttribute("aria-pressed", variant === "spread" ? "true" : "false");
+  els.spBtn.classList.toggle("active", variant === "spread");
 }
 
 // 損切額・見越し最大利益額の理論上の上限を求める。
-//   売り(無限大でない): 実際の最大損失額(損失額入力−受取プレミアム額)
+//   売り(無限大でない): 実際の最大損失額(株購入価格またはスプレッド幅−受取プレミアム額)
 //   売り(コール売り単体=無限大): 上限なし(null)
 //   買いの損切額: 支払いプレミアム額(常に有限)
 //   買いの見越し最大利益額: スプレッド買いはスプレッド幅−支払いプレミアム額、
 //     コール買い単体は上限なし(プット買い単体は理論上は権利行使価格−支払いプレミアム額が上限だが、
-//     権利行使価格の絶対値を入力していないためチェックしない)
+//     今回は上限チェックをしていない)
 function computeCutLossCaps(t) {
   const group = typeGroup(t.typeKey);
   const infinite = isInfiniteLossVariant(t.typeKey, t.rrVariant);
@@ -795,13 +777,22 @@ function computeCutLossCaps(t) {
       cutLossCap = basis - t.rrPremium;
     }
   } else {
-    if (t.rrPremium !== null) cutLossCap = t.rrPremium;
-    if (t.rrVariant === "spread" && t.rrSpreadWidth !== null && t.rrPremium !== null) {
-      const cap = t.rrSpreadWidth - t.rrPremium;
+    if (t.rrPayPremium !== null) cutLossCap = t.rrPayPremium;
+    if (t.rrVariant === "spread" && t.rrSpreadWidth !== null && t.rrPayPremium !== null) {
+      const cap = t.rrSpreadWidth - t.rrPayPremium;
       gainCap = cap >= 0 ? cap : null;
     }
   }
   return { cutLossCap, gainCap };
+}
+
+// data-warn属性を持つ全ての要素(同じ入力欄を複数の場所に置いているため複数ある)に、
+// 警告文を表示/非表示する。
+function setWarn(key, text) {
+  document.querySelectorAll(`[data-warn="${key}"]`).forEach((el) => {
+    el.hidden = !text;
+    el.textContent = text || "";
+  });
 }
 
 // 損切額入力欄からフォーカスが外れたときに、上限を超えていれば上限値に丸め、
@@ -814,12 +805,12 @@ function onCutLossBlur() {
   if (cutLossCap !== null && t.rrCutLoss !== null && t.rrCutLoss > cutLossCap) {
     t.rrCutLoss = cutLossCap;
     els.rrCutLossInput.value = cutLossCap.toFixed(2);
-    els.rrCutLossWarning.hidden = false;
-    els.rrCutLossWarning.textContent = `上限(${cutLossCap.toFixed(2)})を超えていたため、${cutLossCap.toFixed(2)}に調整しました`;
+    setWarn("rrCutLoss", `上限(${cutLossCap.toFixed(2)})を超えていたため、${cutLossCap.toFixed(2)}に調整しました`);
   } else {
-    els.rrCutLossWarning.hidden = true;
+    setWarn("rrCutLoss", null);
   }
   if (t.closesFull) renderAll(t);
+  syncMirrors();
   persistState();
 }
 
@@ -832,12 +823,12 @@ function onExpectedGainBlur() {
   if (gainCap !== null && t.rrExpectedGain !== null && t.rrExpectedGain > gainCap) {
     t.rrExpectedGain = gainCap;
     els.rrExpectedGainInput.value = gainCap.toFixed(2);
-    els.rrExpectedGainWarning.hidden = false;
-    els.rrExpectedGainWarning.textContent = `上限(${gainCap.toFixed(2)})を超えていたため、${gainCap.toFixed(2)}に調整しました`;
+    setWarn("rrExpectedGain", `上限(${gainCap.toFixed(2)})を超えていたため、${gainCap.toFixed(2)}に調整しました`);
   } else {
-    els.rrExpectedGainWarning.hidden = true;
+    setWarn("rrExpectedGain", null);
   }
   if (t.closesFull) renderAll(t);
+  syncMirrors();
   persistState();
 }
 
@@ -909,18 +900,7 @@ function renderRiskReward(t) {
   const group = typeGroup(t.typeKey);
   const infinite = isInfiniteLossVariant(t.typeKey, t.rrVariant);
 
-  const { depthPct, todayStrike } = depthInfo(t, closes);
-  // プット売り(単体)は株購入価格欄を自動値(現在の権利行使価格)で表示する。
-  // 自動でなくなったとき(取引の種類を切り替えたとき)は、入力済みの値に戻す。
-  if (isAutoStockPrice(t.typeKey, t.rrVariant)) {
-    const basis = lossBasisOf(t);
-    els.rrLossBasisInput.value = basis === null ? "" : basis.toFixed(2);
-    els.rrLossBasisInput.dataset.auto = "1";
-  } else if (els.rrLossBasisInput.dataset.auto) {
-    delete els.rrLossBasisInput.dataset.auto;
-    els.rrLossBasisInput.value = t.rrLossBasis ?? "";
-  }
-  renderBreakEvenPrice(t, closes, todayStrike);
+  const { depthPct } = depthInfo(t, closes);
   const depthParams = { ratio: t.ratio, itmWhen: type.itmWhen, window: t.windowDays, depthPct };
 
   // 母集団1: 絞り込みなし(「分析結果」と同じ母集団)
@@ -941,7 +921,7 @@ function renderRiskReward(t) {
   // 保有した場合の最悪ケースなので利確割合は関係しない)、買いは支払いプレミアムそのもの。
   // コール売り(単体)は理論上無限大のため計算しない。
   // 損益分岐の計算に使う「勝ちトレードの利益額」は、売りは受取プレミアム×利確割合
-  // (反対売買の買い戻しコスト控除後の予想利益)、買いは支払いプレミアム(=損失額入力そのもの)。
+  // (反対売買の買い戻しコスト控除後の予想利益)、買いは支払いプレミアム額そのもの。
   // 予想利益(売り)は、コール売り(単体)でも「損切額から損益分岐を確認」セクションで
   // 使うため、無限大かどうかに関わらず計算する。
   let actualMaxLoss = null;
@@ -953,8 +933,8 @@ function renderRiskReward(t) {
       actualMaxLoss = (basis !== null && t.rrPremium !== null) ? basis - t.rrPremium : null;
     }
   } else {
-    premiumForBreakEven = t.rrPremium;
-    actualMaxLoss = t.rrPremium;
+    premiumForBreakEven = t.rrPayPremium;
+    actualMaxLoss = t.rrPayPremium;
   }
 
   renderRiskRewardBlock(els.rrBaseSummary, els.rrBaseWarning, {
@@ -969,6 +949,107 @@ function renderRiskReward(t) {
   setupStatExplain();
 }
 
+// 「注文内容」カードを描画する。注文の条件(取引タイプ・プレミアム・満期までの営業日数など)を
+// 1行にまとめて表示し、満期時の損益分岐点もここに表示する。
+function renderOrderCard(t) {
+  const closes = periodClosesOf(t);
+  const dates = periodDatesOf(t);
+  const type = OPTION_TYPES[t.typeKey];
+  const group = typeGroup(t.typeKey);
+  const isSp = t.rrVariant === "spread";
+  const labels = RISK_VARIANT_LABELS[t.typeKey] || RISK_VARIANT_LABELS.put_sell;
+  const { todayStrike } = depthInfo(t, closes);
+  const latest = closes[closes.length - 1];
+
+  els.orderTicker.textContent = t.symbol || "―";
+  els.orderClose.textContent = `最新終値 ${latest.toFixed(2)}（${dates[dates.length - 1]}）`;
+  els.orderDepthPct.textContent = els.rrDepthPct.textContent;
+
+  const fmt = (v) => v.toFixed(2);
+  const pc = type.itmWhen === "below" ? "P" : "C";
+  let strikeText;
+  if (!isSp) {
+    strikeText = `権利行使価格${fmt(todayStrike)}ドル`;
+  } else {
+    // 比率で決まる権利行使価格(売り系は売り建て側、買い系は買い建て側)と、差額分だけ離れたもう一方の脚。
+    // プット系はもう一方が安い側、コール系は高い側。
+    const w = t.rrSpreadWidth;
+    const far = w === null ? null : (pc === "P" ? todayStrike - w : todayStrike + w);
+    const farText = far === null ? "―" : fmt(far);
+    strikeText = group === "sell"
+      ? `${fmt(todayStrike)}${pc}売/${farText}${pc}買`
+      : `${fmt(todayStrike)}${pc}買/${farText}${pc}売`;
+  }
+  const premium = premiumOf(t);
+  const parts = [
+    isSp ? labels.spread : labels.naked,
+    strikeText,
+    `満期まで${t.windowDays}営業日`,
+    premium === null ? "プレミアム価格 未入力" : `プレミアム価格${fmt(premium)}ドル`,
+  ];
+  if (group === "sell" && t.rrProfitRatio !== null) {
+    const wari = t.rrProfitRatio / 10;
+    parts.push(`${Number.isInteger(wari) ? wari : wari.toFixed(1)}割利確`);
+  }
+  if (group === "buy" && t.rrExpectedGain !== null) {
+    parts.push(`見越し最大利益${fmt(t.rrExpectedGain)}ドル`);
+  }
+  els.orderLine.textContent = parts.join("　");
+
+  renderBreakEvenPrice(t, closes, todayStrike);
+  els.orderCard.hidden = false;
+}
+
+// SPボタン: 単体注文とスプレッド(SP)注文を切り替える。使わない側の入力欄は非表示になり、値は保持される。
+function onToggleSp() {
+  const t = activeTab();
+  if (!t) return;
+  t.rrVariant = t.rrVariant === "spread" ? "naked" : "spread";
+  updateRiskRewardInputUI(t.typeKey, t.rrVariant);
+  if (t.closesFull) renderAll(t);
+  syncMirrors();
+  persistState();
+}
+
+// 同じ入力欄を複数の場所に置くための仕組み。値の持ち主(idで参照する正本)と、
+// data-mirror="正本のid"を付けた入力欄(ミラー)の値を常に同期させる。
+// ミラーで入力すると正本に値を移して同じ入力イベントを発火させるため、既存の処理がそのまま動く。
+function setupMirrors() {
+  const canonIds = new Set();
+  document.querySelectorAll("[data-mirror]").forEach((m) => {
+    const canon = document.getElementById(m.dataset.mirror);
+    if (!canon) return;
+    canonIds.add(m.dataset.mirror);
+    const isSelect = m.tagName === "SELECT";
+    if (isSelect) m.innerHTML = canon.innerHTML;
+    const evt = isSelect ? "change" : "input";
+    m.addEventListener(evt, () => {
+      canon.value = m.value;
+      canon.dispatchEvent(new Event(evt, { bubbles: true }));
+    });
+    if (!isSelect) {
+      m.addEventListener("blur", () => {
+        canon.dispatchEvent(new Event("blur"));
+        syncMirrors();
+      });
+    }
+  });
+  canonIds.forEach((id) => {
+    const canon = document.getElementById(id);
+    canon.addEventListener(canon.tagName === "SELECT" ? "change" : "input", syncMirrors);
+  });
+  syncMirrors();
+}
+
+function syncMirrors() {
+  document.querySelectorAll("[data-mirror]").forEach((m) => {
+    const canon = document.getElementById(m.dataset.mirror);
+    if (!canon) return;
+    if (m.value !== canon.value) m.value = canon.value;
+    m.disabled = canon.disabled;
+  });
+}
+
 // 満期時の損益分岐点(株価)を描画する。単体・スプレッドとも、上部の比率で決まる権利行使価格
 // (売り系は売り建て側、買い系は買い建て側)にプレミアムを加減した値になる
 // (スプレッドでは、もう一方の脚との差額=スプレッド幅は損益分岐点に影響しない)。
@@ -978,7 +1059,7 @@ function renderBreakEvenPrice(t, closes, todayStrike) {
   const type = OPTION_TYPES[t.typeKey];
   const group = typeGroup(t.typeKey);
   const isPut = type.itmWhen === "below";
-  const premium = t.rrPremium;
+  const premium = premiumOf(t);
   const premiumName = group === "sell" ? "受取プレミアム額" : "支払いプレミアム額";
   const formula = `権利行使価格${isPut ? "−" : "＋"}${premiumName}`;
   const latest = closes[closes.length - 1];
@@ -1040,7 +1121,7 @@ function renderRiskRewardBlock(summaryEl, warningEl, { group, infinite, winInfo,
       verdictNote = "コール売り(単体)は理論上、株価に上限がないため損失が無限大になり得ます。\n実際の最大損失額が確定できないため、損益分岐の判定はできません。";
     } else if (breakEvenValue === null || actualMaxLoss === null) {
       verdictHtml = `<span class="badge b-neutral">入力待ち</span>`;
-      verdictNote = "損失額入力・受取プレミアム額（必要なら利確割合も）を入力すると判定されます。";
+      verdictNote = "「注文内容」に、受取プレミアム額（スプレッドの場合は権利行使価格の差額も。必要なら利確割合も）を入力すると判定されます。";
     } else {
       const favorable = actualMaxLoss <= breakEvenValue;
       verdictHtml = `<span class="badge ${favorable ? "b0" : "b6"}">${favorable ? "統計的に有利" : "統計的に不利"}</span>`;
@@ -1071,7 +1152,7 @@ function renderRiskRewardBlock(summaryEl, warningEl, { group, infinite, winInfo,
   const maxLossNote = infinite
     ? "コール売り(単体)は株価に上限がないため、理論上損失は無限大になり得ます。"
     : group === "sell"
-      ? "損失額入力(株購入価格またはスプレッド幅)から受取プレミアム額を差し引いた、満期までITMのまま保有した場合の最悪ケースの損失額です。"
+      ? "株購入価格(プット売り単体は現在の権利行使価格)またはスプレッド幅から受取プレミアム額を差し引いた、満期までITMのまま保有した場合の最悪ケースの損失額です。"
       : "支払ったプレミアム額そのものが、このポジションの最大損失額です(それ以上の損失は発生しません)。";
   const totalNote = isBase
     ? "「分析結果」と同じ母集団(集計期間−判定期間)の件数です。"
@@ -1200,9 +1281,9 @@ function init() {
   els.minMatchDaysInput.addEventListener("input", debounce(onFormChange, 250));
   els.momentumDirectionSelect.addEventListener("change", onFormChange);
   els.momentumThresholdInput.addEventListener("input", debounce(onFormChange, 250));
-  els.rrVariantSelect.addEventListener("change", onFormChange);
+  els.spBtn.addEventListener("click", onToggleSp);
   els.rrDepthInput.addEventListener("input", debounce(onFormChange, 250));
-  els.rrLossBasisInput.addEventListener("input", debounce(onFormChange, 250));
+  els.rrPayPremiumInput.addEventListener("input", debounce(onFormChange, 250));
   els.rrPremiumInput.addEventListener("input", debounce(onFormChange, 250));
   els.rrProfitRatioInput.addEventListener("input", debounce(onFormChange, 250));
   els.rrSpreadWidthInput.addEventListener("input", debounce(onFormChange, 250));
@@ -1212,6 +1293,7 @@ function init() {
   els.rrExpectedGainInput.addEventListener("blur", onExpectedGainBlur);
   els.shareBtn.addEventListener("click", onShareLink);
   els.openDetailBtn.addEventListener("click", onOpenDetail);
+  setupMirrors();
 }
 
 function debounce(fn, ms) {

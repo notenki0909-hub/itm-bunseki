@@ -35,31 +35,6 @@
         <label for="periodSelect">集計期間</label>
         <select id="periodSelect"></select>
       </div>
-      <div class="field">
-        <label for="rrPremiumInput" data-target="riskRewardExplain"
-          data-note="注文時の条件です。売りなら受取プレミアム額、買いなら支払いプレミアム額（どちらも1株あたりの合計額）を入力します。
-リスクリワード分析の損益分岐点・最大損失額・損切額の上限などに使います。スプレッドの場合は、差し引き後の正味の額（受取−支払い）を入力してください。
-（買い系は支払いプレミアム額がそのまま最大損失額になります）"><span id="rrPremiumLabel">受取プレミアム額</span></label>
-        <input id="rrPremiumInput" type="number" step="0.01" min="0" placeholder="例: 1.20">
-      </div>
-      <div class="field" id="rrProfitRatioField">
-        <label for="rrProfitRatioInput" data-target="riskRewardExplain"
-          data-note="注文時の条件です(売り系のみ)。反対売買（買い戻し）で決済する場合、買い戻しにも費用がかかるため、実際に手元に残る利益は受取プレミアムの一部にとどまります。
-受け取ったプレミアムのうち何%を利益として確定させるかを入力してください。
-（未入力の場合は100%＝満期まで保有して受取プレミアムを丸々得たものとして計算します）
-買い系では表示されず、代わりに「見越し最大利益額」を入力します。">利確割合(%)</label>
-        <input id="rrProfitRatioInput" type="number" step="1" min="0" max="100" placeholder="未入力=100%">
-      </div>
-      <div class="field" id="rrExpectedGainField" hidden>
-        <label for="rrExpectedGainInput" data-target="riskRewardExplain"
-          data-note="注文時の条件です(買い系のみ)。このトレードで見込んでいる最大利益額を入力します。
-買い系は利益額が変動し追跡していないため、ご自身の見込みを入力してください。
-コール買い単体は上限なし、スプレッド買いはスプレッド幅−支払いプレミアム額が理論上の上限です。
-（プット買い単体も理論上は権利行使価格−支払いプレミアム額が上限ですが、このツールでは権利行使価格の絶対値を入力していないため、自動での上限チェックはしていません）
-（スプレッド買いで超える入力をした場合、欄から離れると自動的に上限値に調整されます）">見越し最大利益額</label>
-        <input id="rrExpectedGainInput" type="number" step="0.01" min="0" placeholder="例: 8.00">
-        <span class="field-warn" id="rrExpectedGainWarning" hidden></span>
-      </div>
       <button id="analyzeBtn" type="button">分析する</button>
     </div>
     <div id="status"></div>
@@ -150,6 +125,100 @@ ITMが良い結果か悪い結果かは取引タイプにより異なります�
     <p style="margin:14px 0 0"><button id="openDetailBtn" type="button" class="btn-outline">詳細マトリクスを別ページで見る（元Excel形式）</button></p>
   </div>
 
+  <div id="orderCard" class="card" hidden>
+    <div class="order-head">
+      <h2 style="margin:0;font-size:16px">注文内容</h2>
+      <button id="spBtn" type="button" class="sp-btn" aria-pressed="false" title="スプレッド(ブルプット・ベアコール・ブルコール・ベアプット)の注文に切り替えます。使わない側の入力欄は非表示になり、入力値は保持されます">SP</button>
+    </div>
+    <p class="sub" style="margin:0 0 10px">注文の条件をここにまとめます。上の入力欄と連動していて、どちらで変更しても同じ値になります。ティッカーだけは、一番上の入力欄で変更して「分析する」を押してください。「SP」ボタンで、スプレッド注文に切り替わります。</p>
+    <div class="form-row">
+      <div class="field">
+        <label>ティッカー</label>
+        <div class="field-inline"><b id="orderTicker" class="order-ticker">―</b><span class="field-hint" id="orderClose"></span></div>
+      </div>
+      <div class="field">
+        <label for="orderTypeSelect">取引タイプ</label>
+        <select id="orderTypeSelect" data-mirror="typeSelect"></select>
+      </div>
+      <div class="field">
+        <label for="orderRatioInput">権利行使価格の比率</label>
+        <input id="orderRatioInput" data-mirror="ratioInput" type="number" step="0.01" min="0.01">
+      </div>
+      <div class="field">
+        <label for="orderWindowSelect">判定期間</label>
+        <select id="orderWindowSelect" data-mirror="windowSelect"></select>
+      </div>
+      <div class="field">
+        <label for="orderPeriodSelect">集計期間</label>
+        <select id="orderPeriodSelect" data-mirror="periodSelect"></select>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="field" data-only="sp">
+        <label for="rrSpreadWidthInput" data-target="riskRewardExplain"
+          data-note="スプレッドで買う側と売る側の、2つの権利行使価格の差額(スプレッド幅)です。
+売り系スプレッド(ブルプット/ベアコール)では、実際の最大損失額＝スプレッド幅−受取プレミアム額の計算に使います。
+買い系スプレッド(ブルコール/ベアプット)では、見越し最大利益額の上限(スプレッド幅−支払いプレミアム額)の計算に使います(実際の最大損失額＝支払いプレミアム額には影響しません)。
+権利行使価格は、一方がこのツールの比率で決まる値(売り系は売り建て側、買い系は買い建て側)で、もう一方はそこから差額分だけ離れた値です。">権利行使価格の差額</label>
+        <input id="rrSpreadWidthInput" type="number" step="0.01" min="0" placeholder="例: 10.00">
+      </div>
+      <div class="field" data-only="sell">
+        <label for="rrPremiumInput" data-target="riskRewardExplain"
+          data-note="オプションの売り手として受け取るプレミアム額（1株あたりの合計額）です。
+スプレッドの場合は、差し引き後の正味の額（受取−支払い）を入力してください。
+損益分岐点・最大損失額・損切額の上限などに使います。">受取プレミアム額</label>
+        <input id="rrPremiumInput" type="number" step="0.01" min="0" placeholder="例: 1.20">
+      </div>
+      <div class="field" data-only="sell">
+        <label for="rrProfitRatioInput" data-target="riskRewardExplain"
+          data-note="反対売買（買い戻し）で決済する場合、買い戻しにも費用がかかるため、実際に手元に残る利益は受取プレミアムの一部にとどまります。
+受け取ったプレミアムのうち何%を利益として確定させるかを入力してください。
+（未入力の場合は100%＝満期まで保有して受取プレミアムを丸々得たものとして計算します）">利確割合(%)</label>
+        <input id="rrProfitRatioInput" type="number" step="1" min="0" max="100" placeholder="未入力=100%">
+      </div>
+      <div class="field" data-only="buy">
+        <label for="rrPayPremiumInput" data-target="riskRewardExplain"
+          data-note="オプションの買い手として支払うプレミアム額（1株あたりの合計額）です。
+スプレッドの場合は、差し引き後の正味の額（支払い−受取）を入力してください。
+買い系は、支払いプレミアム額がそのまま最大損失額になります。">支払いプレミアム額</label>
+        <input id="rrPayPremiumInput" type="number" step="0.01" min="0" placeholder="例: 4.00">
+      </div>
+      <div class="field" data-only="buy">
+        <label for="rrExpectedGainInput" data-target="riskRewardExplain"
+          data-note="このトレードで見込んでいる最大利益額を入力します。
+買い系は利益額が変動し追跡していないため、ご自身の見込みを入力してください。
+コール買い単体は上限なし、スプレッド買いはスプレッド幅−支払いプレミアム額が理論上の上限です。
+（プット買い単体も理論上は権利行使価格−支払いプレミアム額が上限ですが、自動での上限チェックはしていません）
+（スプレッド買いで超える入力をした場合、欄から離れると自動的に上限値に調整されます）">見越し最大利益額</label>
+        <input id="rrExpectedGainInput" type="number" step="0.01" min="0" placeholder="例: 8.00">
+        <span class="field-warn" data-warn="rrExpectedGain" hidden></span>
+      </div>
+      <div class="field">
+        <label for="rrCutLossInput" data-target="riskRewardExplain"
+          data-note="実際に損切りするつもりの金額を入力します。
+売り系は実際の最大損失額（コール売り単体は上限なし）、買い系は支払いプレミアム額までの範囲で設定してください。
+（超える入力をした場合、欄から離れると自動的に上限値に調整されます）
+反対売買で実際に入れる指値は、売り系なら「約定レート（受取プレミアム額）＋損切額」、買い系なら「約定レート（支払いプレミアム額）－損切額」になります。
+（例: 売り系で約定レートが1.2、損切額が2なら指値は3.2）
+リスクリワード分析の「損切額から損益分岐を確認」と同じ入力欄です。">損切額</label>
+        <input id="rrCutLossInput" type="number" step="0.01" min="0" placeholder="例: 3.00">
+        <span class="field-warn" data-warn="rrCutLoss" hidden></span>
+      </div>
+      <div class="field">
+        <label for="orderDepthInput" data-target="riskRewardExplain"
+          data-note="「分析結果」の見出し横にある「判定する深さ」と同じ入力欄です(どちらで入力しても連動します)。
+権利行使価格から何ドル以上深いITMに届いたら、売りは「負け」・買いは「勝ち」とみなすかを入力します。空欄(0ドル)なら、一度でもITMになれば該当です。">判定する深さ(権利行使価格±◯ドル)</label>
+        <div class="field-inline">
+          <input id="orderDepthInput" data-mirror="rrDepthInput" type="number" step="0.01" min="0" placeholder="空欄=0ドル">
+          <span class="field-hint" id="orderDepthPct"></span>
+        </div>
+      </div>
+    </div>
+    <div class="order-line" id="orderLine"></div>
+    <h3 style="margin:14px 0 8px;font-size:14px">損益分岐点（満期時の株価）</h3>
+    <div class="summary" id="rrBreakEvenSummary"></div>
+  </div>
+
   <div id="conditionCard" class="card" hidden>
     <h2 style="margin:0 0 10px;font-size:16px">エントリー条件で絞り込み</h2>
     <p class="sub" style="margin:0 0 10px"><b>判定基準：</b>上の「分析結果」と同じ権利行使価格の基準に加えて、<b>指定した値動き条件に当てはまった日だけ</b>に絞ってエントリーした場合を判定します（分析結果の対象日を、値動き条件でさらに絞り込んだものです）。</p>
@@ -217,30 +286,8 @@ ITMが良い結果か悪い結果かは取引タイプにより異なります�
     <p class="sub" style="margin:0 0 10px"><b>リスクリワードとは：</b><br>
       ・1回の負けで失う額が小さく、1回の勝ちで得る額が大きいほど → 必要な勝率は低くて済む（多少負けが込んでも平気）<br>
       ・1回の負けで失う額が大きく、1回の勝ちで得る額が小さいほど → かなり高い勝率がないと割に合わない</p>
-    <p class="sub" style="margin:0 0 10px"><b>考え方：</b>判定期間内のいずれかの営業日の終値が、権利行使価格から指定した深さ（上の「分析結果」欄の「判定する深さ」）以上のITMに届いたエントリー日を、売りは「負け」・買いは「勝ち」とみなして、ITM発生率（分析結果と同じ向きの率。勝率も併記）を算出します。受取/支払いプレミアム額と利確割合（上部の入力欄に入力した注文時の条件）と組み合わせて、損益分岐の目安と比較します。</p>
-    <div class="form-row">
-      <div class="field">
-        <label for="rrVariantSelect" data-target="riskRewardExplain"
-          data-note="上の「取引タイプ」に対応する、単体とスプレッドの2種類から選べます。
-（例: プット売なら「プット売り」または「ブルプット」）">取引の種類</label>
-        <select id="rrVariantSelect"></select>
-      </div>
-    </div>
-    <div class="form-row">
-      <div class="field" id="rrLossBasisField">
-        <label for="rrLossBasisInput" data-target="riskRewardExplain"
-          data-note="プット売り(単体)の株購入価格は、現在の権利行使価格(本日の終値×権利行使価格の比率)を自動で使うため、入力不要です(入力欄には自動計算した値が表示されます)。
-スプレッド（ブルプット/ベアコール）なら2つの権利行使価格の差額（スプレッド幅）を入力します。
-コール売り(単体)は損失が無限大のため使いません。
-買い系は損失額＝支払いプレミアム額（上部の入力欄）のため、この欄は表示されません。">
-          <span id="rrLossBasisLabel">株購入価格</span></label>
-        <input id="rrLossBasisInput" type="number" step="0.01" min="0" placeholder="例: 45.00">
-      </div>
-    </div>
-    <p class="sub" id="rrInfiniteNote" style="margin:-6px 0 10px" hidden>コール売り(単体)は理論上、損失が無限大になり得るため、上の「一回の損切における上限額」の判定には受取プレミアム額・利確割合を使用しません（損失額入力欄も無効化されています）。ただし下の「損切額から損益分岐を確認」では、自分で決めた損切額と組み合わせて使用します。</p>
-
-    <h3 style="margin:18px 0 8px;font-size:14px">損益分岐点（満期時の株価）</h3>
-    <div class="summary" id="rrBreakEvenSummary"></div>
+    <p class="sub" style="margin:0 0 10px"><b>考え方：</b>判定期間内のいずれかの営業日の終値が、権利行使価格から指定した深さ（上の「分析結果」欄の「判定する深さ」）以上のITMに届いたエントリー日を、売りは「負け」・買いは「勝ち」とみなして、ITM発生率（分析結果と同じ向きの率。勝率も併記）を算出します。受取/支払いプレミアム額と利確割合（「注文内容」に入力した注文の条件）と組み合わせて、損益分岐の目安と比較します。</p>
+    <p class="sub" id="rrInfiniteNote" style="margin:-6px 0 10px" hidden>コール売り(単体)は理論上、損失が無限大になり得るため、下の「一回の損切における上限額」の判定には受取プレミアム額・利確割合を使用しません。ただし下の「損切額から損益分岐を確認」では、自分で決めた損切額と組み合わせて使用します。</p>
 
     <h3 style="margin:18px 0 8px;font-size:14px">絞り込みなし（分析結果と同じ母集団）</h3>
     <div class="summary" id="rrBaseSummary"></div>
@@ -251,24 +298,27 @@ ITMが良い結果か悪い結果かは取引タイプにより異なります�
     <div id="rrCondWarning" class="disc" style="margin-top:8px" hidden></div>
 
     <h3 style="margin:18px 0 8px;font-size:14px">損切額から損益分岐を確認</h3>
-    <p class="sub" style="margin:0 0 10px">実際に損切りするつもりの金額を入力すると（買い系は、上部の入力欄の見越し最大利益額も使います）、損益分岐に必要なITM発生率（勝率に換算した値も併記）を算出し、上の実績のITM発生率と比較します。</p>
+    <p class="sub" style="margin:0 0 10px">実際に損切りするつもりの金額を入力すると（「注文内容」の損切額・利確割合・見越し最大利益額と連動しています。買い系は見越し最大利益額も使います）、損益分岐に必要なITM発生率（勝率に換算した値も併記）を算出し、上の実績のITM発生率と比較します。</p>
     <div class="form-row">
-      <div class="field" id="rrSpreadWidthField" hidden>
-        <label for="rrSpreadWidthInput" data-target="riskRewardExplain"
-          data-note="ブルコール/ベアプットの権利行使価格の差額(スプレッド幅)です。
-見越し最大利益額の理論上の上限(スプレッド幅−支払いプレミアム額)を計算するためだけに使用します。
-実際の最大損失額(＝支払いプレミアム額)の計算には影響しません。">権利行使価格の差額(スプレッド幅)</label>
-        <input id="rrSpreadWidthInput" type="number" step="0.01" min="0" placeholder="例: 10.00">
-      </div>
       <div class="field">
-        <label for="rrCutLossInput" data-target="riskRewardExplain"
-          data-note="実際に損切りするつもりの金額を入力します。
+        <label for="rrCutLossInputM" data-target="riskRewardExplain" data-note="注文内容の「損切額」と同じ入力欄です(どちらで入力しても連動します)。
+実際に損切りするつもりの金額を入力します。
 売り系は実際の最大損失額（コール売り単体は上限なし）、買い系は支払いプレミアム額までの範囲で設定してください。
-（超える入力をした場合、欄から離れると自動的に上限値に調整されます）
-反対売買で実際に入れる指値は、売り系なら「約定レート（受取プレミアム額）＋損切額」、買い系なら「約定レート（支払いプレミアム額）－損切額」になります。
-（例: 売り系で約定レートが1.2、損切額が2なら指値は3.2）">損切額</label>
-        <input id="rrCutLossInput" type="number" step="0.01" min="0" placeholder="例: 3.00">
-        <span class="field-warn" id="rrCutLossWarning" hidden></span>
+（超える入力をした場合、欄から離れると自動的に上限値に調整されます）">損切額</label>
+        <input id="rrCutLossInputM" data-mirror="rrCutLossInput" type="number" step="0.01" min="0" placeholder="例: 3.00">
+        <span class="field-warn" data-warn="rrCutLoss" hidden></span>
+      </div>
+      <div class="field" data-only="sell">
+        <label for="rrProfitRatioInputM" data-target="riskRewardExplain" data-note="注文内容の「利確割合(%)」と同じ入力欄です(どちらで入力しても連動します)。
+反対売買（買い戻し）で決済する場合に、受け取ったプレミアムのうち何%を利益として確定させるかです（未入力＝100%）。">利確割合(%)</label>
+        <input id="rrProfitRatioInputM" data-mirror="rrProfitRatioInput" type="number" step="1" min="0" max="100" placeholder="未入力=100%">
+      </div>
+      <div class="field" data-only="buy">
+        <label for="rrExpectedGainInputM" data-target="riskRewardExplain" data-note="注文内容の「見越し最大利益額」と同じ入力欄です(どちらで入力しても連動します)。
+このトレードで見込んでいる最大利益額です。損益分岐に必要なITM発生率の計算に使います。
+（スプレッド買いで上限を超える入力をした場合、欄から離れると自動的に上限値に調整されます）">見越し最大利益額</label>
+        <input id="rrExpectedGainInputM" data-mirror="rrExpectedGainInput" type="number" step="0.01" min="0" placeholder="例: 8.00">
+        <span class="field-warn" data-warn="rrExpectedGain" hidden></span>
       </div>
     </div>
     <div class="summary" id="rrCutLossSummary"></div>
