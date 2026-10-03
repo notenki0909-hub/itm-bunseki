@@ -261,6 +261,8 @@ const els = {
   heatmapWrap: document.getElementById("heatmapWrap"),
   symbolLabel: document.getElementById("symbolLabel"),
   dayProbDepth: document.getElementById("dayProbDepth"),
+  depthRiskBox: document.getElementById("depthRiskBox"),
+  depthRiskLine: document.getElementById("depthRiskLine"),
   heatmapDepth: document.getElementById("heatmapDepth"),
   resultTypeLabel: document.getElementById("resultTypeLabel"),
   badgeLegend: document.getElementById("badgeLegend"),
@@ -678,6 +680,32 @@ function depthSuffixOf(t) {
   return d > 0 ? `（${d}ドル）` : "";
 }
 
+// 売り系で「判定する深さ」を入力しているとき、総合判定の下に「深さに届くと1契約あたり◯ドルの損失リスク」を
+// 表示する。深さを深くするほど届く割合は下がって判定は良く見えるが、届いたときの損失は大きくなるため、
+// その重さを金額で示す。金額は深さ×100株(1契約)で、受取プレミアムは差し引かない。
+// スプレッド(ブルプット/ベアコール)は、差額を入力済みなら差額×100株で頭打ちにする。買い系は表示しない。
+const SHARES_PER_CONTRACT = 100;
+function renderDepthRisk(t, analysis, depthDollar, group) {
+  const box = els.depthRiskBox;
+  if (group !== "sell" || !(depthDollar > 0)) {
+    box.hidden = true;
+    els.depthRiskLine.textContent = "";
+    return;
+  }
+  const money = (v) => v.toLocaleString("ja-JP", { maximumFractionDigits: 2 });
+  const width = t.rrVariant === "spread" ? t.rrSpreadWidth : null;
+  const capped = width !== null && width > 0 && depthDollar > width;
+  const rate = analysis.overallItmProb === null
+    ? "―"
+    : (analysis.overallItmProb * 100).toFixed(1) + "%";
+  const freq = `過去の実績では、判定期間内に${rate}（${analysis.itmEntryCount.toLocaleString("ja-JP")}/${analysis.entryCount.toLocaleString("ja-JP")}件）の割合で届きました。`;
+  const head = capped
+    ? `ITM（${money(depthDollar)}ドル）に届くと、損失はスプレッドの上限（権利行使価格の差額${money(width)}ドル）で頭打ちとなり、1契約（${SHARES_PER_CONTRACT}株）あたり最大${money(width * SHARES_PER_CONTRACT)}ドルの損失リスクを負います。`
+    : `ITM（${money(depthDollar)}ドル）に届くと、1契約（${SHARES_PER_CONTRACT}株）あたり${money(depthDollar * SHARES_PER_CONTRACT)}ドルの損失リスクを負います。`;
+  els.depthRiskLine.textContent = `${head}${freq}`;
+  box.hidden = false;
+}
+
 function renderMainAnalysis(t) {
   const closes = periodClosesOf(t);
   const dates = periodDatesOf(t);
@@ -713,6 +741,7 @@ function renderMainAnalysis(t) {
   els.chartWrap.innerHTML = renderDayProbChart(analysis.dayProb, group);
   els.heatmapWrap.innerHTML = renderEntryHeatmap(analysis.perEntry, t.windowDays, group,
     depthDollar > 0 ? `(${depthDollar}ドル以上)` : "");
+  renderDepthRisk(t, analysis, depthDollar, group);
   els.badgeLegend.innerHTML = renderBadgeLegend(group);
   els.dayProbLegend.innerHTML = renderColorLegend(DAY_PROB_BANDS[group]);
   els.entryHeatmapLegend.innerHTML = renderColorLegend(ENTRY_HEATMAP_BANDS[group]);

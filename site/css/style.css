@@ -112,6 +112,11 @@ h1{font-size:20px;margin:0 0 4px}
 .field input:disabled,.field select:disabled{background:repeating-linear-gradient(135deg,var(--line),var(--line) 4px,var(--field) 4px,var(--field) 9px);
   color:var(--muted);opacity:.55;cursor:not-allowed;border-style:dashed}
 #ticker{width:140px;text-transform:uppercase}
+/* 売り系で「判定する深さ」を入力したときに、総合判定の下に出す損失リスクの表示 */
+.risk-box{margin:10px 0 0;padding:10px 12px;border:1px solid var(--gC);border-radius:8px;
+  background:color-mix(in srgb,var(--gC) 10%,transparent);font-size:13px;line-height:1.7}
+.risk-box[hidden]{display:none}
+.risk-note{font-size:11px;color:var(--muted);margin-top:4px;line-height:1.6}
 .result-head{display:flex;flex-wrap:wrap;align-items:flex-end;gap:8px 18px;margin:0 0 10px}
 .result-head .explain-box{flex:1 1 100%}
 /* 注文内容カード: 売り/買い・単体/SPで使う入力欄を、body属性(updateRiskRewardInputUI)で切り替える。
