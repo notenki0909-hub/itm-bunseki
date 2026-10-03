@@ -375,6 +375,7 @@ function switchTab(id) {
   els.rrPayPremiumInput.value = t.rrPayPremium ?? "";
   els.rrProfitRatioInput.value = t.rrProfitRatio ?? "";
   els.rrCutLossInput.value = t.rrCutLoss ?? "";
+  delete els.rrExpectedGainInput.dataset.auto;
   els.rrExpectedGainInput.value = t.rrExpectedGain ?? "";
   els.rrSpreadWidthInput.value = t.rrSpreadWidth ?? "";
   setWarn("rrCutLoss", null);
@@ -523,8 +524,19 @@ function onFormChange() {
   t.rrPayPremium = els.rrPayPremiumInput.value === "" ? null : Number(els.rrPayPremiumInput.value);
   t.rrProfitRatio = els.rrProfitRatioInput.value === "" ? null : Number(els.rrProfitRatioInput.value);
   t.rrCutLoss = els.rrCutLossInput.value === "" ? null : Number(els.rrCutLossInput.value);
-  t.rrExpectedGain = els.rrExpectedGainInput.value === "" ? null : Number(els.rrExpectedGainInput.value);
+  if (!els.rrExpectedGainInput.dataset.auto) {
+    t.rrExpectedGain = els.rrExpectedGainInput.value === "" ? null : Number(els.rrExpectedGainInput.value);
+  }
   t.rrSpreadWidth = els.rrSpreadWidthInput.value === "" ? null : Number(els.rrSpreadWidthInput.value);
+  // プレミアム額・差額などの変更で理論上の最大利益額が下がった場合も、手入力値を上限に丸める
+  {
+    const { gainCap } = computeCutLossCaps(t);
+    if (t.rrExpectedGain !== null && gainCap !== null && t.rrExpectedGain > gainCap) {
+      t.rrExpectedGain = gainCap;
+      els.rrExpectedGainInput.value = gainCap.toFixed(2);
+      setWarn("rrExpectedGain", `理論上の最大利益額(${gainCap.toFixed(2)})を超えていたため、${gainCap.toFixed(2)}に調整しました`);
+    }
+  }
   updateRiskRewardInputUI(t.typeKey, t.rrVariant);
 
   if (t.closesFull) renderAll(t);
@@ -763,18 +775,25 @@ function updateRiskRewardInputUI(typeKey, variant) {
   els.rrInfiniteNote.hidden = !infinite;
 
   const labels = RISK_VARIANT_LABELS[typeKey] || RISK_VARIANT_LABELS.put_sell;
-  els.spBtn.textContent = `SP（${labels.spread}）`;
+  els.spBtn.textContent = variant === "spread" ? `${labels.naked}へ切替` : `${labels.spread}へ切替`;
   els.spBtn.setAttribute("aria-pressed", variant === "spread" ? "true" : "false");
   els.spBtn.classList.toggle("active", variant === "spread");
+}
+
+// 現在の権利行使価格(本日の終値×比率)。データ未取得ならnull。
+function todayStrikeOf(t) {
+  const c = t.closesFull;
+  return c && c.length ? c[c.length - 1] * t.ratio : null;
 }
 
 // 損切額・見越し最大利益額の理論上の上限を求める。
 //   売り(無限大でない): 実際の最大損失額(株購入価格またはスプレッド幅−受取プレミアム額)
 //   売り(コール売り単体=無限大): 上限なし(null)
 //   買いの損切額: 支払いプレミアム額(常に有限)
-//   買いの見越し最大利益額: スプレッド買いはスプレッド幅−支払いプレミアム額、
-//     コール買い単体は上限なし(プット買い単体は理論上は権利行使価格−支払いプレミアム額が上限だが、
-//     今回は上限チェックをしていない)
+//   買いの見越し最大利益額(理論上の最大利益額):
+//     スプレッド買い: スプレッド幅−支払いプレミアム額
+//     プット買い(単体): 現在の権利行使価格−支払いプレミアム額(株価は0未満にならないため)
+//     コール買い(単体): 上限なし(null)
 function computeCutLossCaps(t) {
   const group = typeGroup(t.typeKey);
   const infinite = isInfiniteLossVariant(t.typeKey, t.rrVariant);
@@ -787,12 +806,58 @@ function computeCutLossCaps(t) {
     }
   } else {
     if (t.rrPayPremium !== null) cutLossCap = t.rrPayPremium;
-    if (t.rrVariant === "spread" && t.rrSpreadWidth !== null && t.rrPayPremium !== null) {
-      const cap = t.rrSpreadWidth - t.rrPayPremium;
-      gainCap = cap >= 0 ? cap : null;
+    if (t.rrPayPremium !== null) {
+      let cap = null;
+      if (t.rrVariant === "spread") {
+        if (t.rrSpreadWidth !== null) cap = t.rrSpreadWidth - t.rrPayPremium;
+      } else if (t.typeKey === "put_buy") {
+        const strike = todayStrikeOf(t);
+        if (strike !== null) cap = strike - t.rrPayPremium;
+      }
+      gainCap = cap !== null && cap >= 0 ? cap : null;
     }
   }
   return { cutLossCap, gainCap };
+}
+
+// 見越し最大利益額として計算に使う値。手入力があればそれ、空欄(自動)なら理論上の最大利益額。
+// コール買い(単体)のように上限がなく自動値も出せない場合はnull。
+function expectedGainOf(t) {
+  if (t.rrExpectedGain !== null) return t.rrExpectedGain;
+  return computeCutLossCaps(t).gainCap;
+}
+
+// 見越し最大利益額の入力欄を、理論上の最大利益額で自動入力する(手入力がない場合)。
+// 入力中(フォーカスあり)は上書きしない。入力欄には上限(max)とヒントも設定する。
+function refreshExpectedGainField(t) {
+  const { gainCap } = computeCutLossCaps(t);
+  const el = els.rrExpectedGainInput;
+  const mirrors = [...document.querySelectorAll('[data-mirror="rrExpectedGainInput"]')];
+  const focused = [el, ...mirrors].includes(document.activeElement);
+  el.max = gainCap === null ? "" : gainCap.toFixed(2);
+  mirrors.forEach((m) => { m.max = el.max; });
+  if (t.rrExpectedGain === null) {
+    if (!focused) {
+      if (gainCap !== null) {
+        el.value = gainCap.toFixed(2);
+        el.dataset.auto = "1";
+      } else {
+        el.value = "";
+        delete el.dataset.auto;
+      }
+    }
+  } else {
+    delete el.dataset.auto;
+    if (!focused) el.value = t.rrExpectedGain;
+  }
+  const isCallSingle = t.rrVariant !== "spread" && t.typeKey === "call_buy";
+  let hint = "";
+  if (isCallSingle) hint = "上限なし(コール買いは理論上の最大利益額がありません)";
+  else if (gainCap === null) hint = "プレミアム額(・差額)を入力すると、理論上の最大利益額が自動入力されます";
+  else if (el.dataset.auto) hint = `自動入力: 理論上の最大利益額 ${gainCap.toFixed(2)}（これを超える額は入力できません）`;
+  else hint = `理論上の最大利益額 ${gainCap.toFixed(2)} まで入力できます（空欄にすると自動入力に戻ります）`;
+  document.querySelectorAll('[data-hint="rrExpectedGain"]').forEach((h) => { h.textContent = hint; });
+  syncMirrors();
 }
 
 // data-warn属性を持つ全ての要素(同じ入力欄を複数の場所に置いているため複数ある)に、
@@ -823,19 +888,30 @@ function onCutLossBlur() {
   persistState();
 }
 
-// 見越し最大利益額入力欄も同様に、フォーカスが外れたときだけ上限に丸める。
-function onExpectedGainBlur() {
+// 見越し最大利益額は、理論上の最大利益額を超える額を入力できない。入力した瞬間に上限へ丸め、
+// 理由を添えた警告を表示する。空欄にすると自動入力(理論上の最大利益額)に戻る。
+function onExpectedGainInput() {
   const t = activeTab();
   if (!t) return;
-  t.rrExpectedGain = els.rrExpectedGainInput.value === "" ? null : Number(els.rrExpectedGainInput.value);
+  const el = els.rrExpectedGainInput;
+  delete el.dataset.auto;
+  let v = el.value === "" ? null : Number(el.value);
   const { gainCap } = computeCutLossCaps(t);
-  if (gainCap !== null && t.rrExpectedGain !== null && t.rrExpectedGain > gainCap) {
-    t.rrExpectedGain = gainCap;
-    els.rrExpectedGainInput.value = gainCap.toFixed(2);
-    setWarn("rrExpectedGain", `上限(${gainCap.toFixed(2)})を超えていたため、${gainCap.toFixed(2)}に調整しました`);
+  if (v !== null && gainCap !== null && v > gainCap) {
+    v = gainCap;
+    el.value = gainCap.toFixed(2);
+    setWarn("rrExpectedGain", `理論上の最大利益額(${gainCap.toFixed(2)})を超えていたため、${gainCap.toFixed(2)}に調整しました`);
   } else {
     setWarn("rrExpectedGain", null);
   }
+  t.rrExpectedGain = v;
+  syncMirrors();
+}
+
+// フォーカスが外れたとき、空欄なら自動入力(理論上の最大利益額)に戻す。
+function onExpectedGainBlur() {
+  const t = activeTab();
+  if (!t) return;
   if (t.closesFull) renderAll(t);
   syncMirrors();
   persistState();
@@ -851,7 +927,7 @@ function tenTrialText(winRate) {
 // 「損切額から損益分岐を確認」セクションを描画する。実績の勝率(絞り込みなし/あり)
 // には依存しない単一の損益分岐勝率を算出し、両方の実績勝率と比較する。
 function renderCutLossSection(t, { group, infinite, premiumForBreakEven, baseWin, condWin }) {
-  const gain = group === "sell" ? premiumForBreakEven : t.rrExpectedGain;
+  const gain = group === "sell" ? premiumForBreakEven : expectedGainOf(t);
   const loss = t.rrCutLoss;
   const neededWinRate = breakEvenWinRateFromLoss(gain, loss);
 
@@ -961,6 +1037,7 @@ function renderRiskReward(t) {
 // 「注文内容」カードを描画する。注文の条件(取引タイプ・プレミアム・満期までの営業日数など)を
 // 1行にまとめて表示し、満期時の損益分岐点もここに表示する。
 function renderOrderCard(t) {
+  refreshExpectedGainField(t);
   const closes = periodClosesOf(t);
   const dates = periodDatesOf(t);
   const type = OPTION_TYPES[t.typeKey];
@@ -1000,8 +1077,9 @@ function renderOrderCard(t) {
     const wari = t.rrProfitRatio / 10;
     parts.push(`${Number.isInteger(wari) ? wari : wari.toFixed(1)}割利確`);
   }
-  if (group === "buy" && t.rrExpectedGain !== null) {
-    parts.push(`見越し最大利益${fmt(t.rrExpectedGain)}ドル`);
+  const gainValue = group === "buy" ? expectedGainOf(t) : null;
+  if (gainValue !== null) {
+    parts.push(`見越し最大利益${fmt(gainValue)}ドル`);
   }
   els.orderLine.textContent = parts.join("　");
 
@@ -1298,6 +1376,7 @@ function init() {
   els.rrSpreadWidthInput.addEventListener("input", debounce(onFormChange, 250));
   els.rrCutLossInput.addEventListener("input", debounce(onFormChange, 250));
   els.rrCutLossInput.addEventListener("blur", onCutLossBlur);
+  els.rrExpectedGainInput.addEventListener("input", onExpectedGainInput);
   els.rrExpectedGainInput.addEventListener("input", debounce(onFormChange, 250));
   els.rrExpectedGainInput.addEventListener("blur", onExpectedGainBlur);
   els.shareBtn.addEventListener("click", onShareLink);

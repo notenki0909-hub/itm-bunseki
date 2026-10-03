@@ -131,9 +131,9 @@ ITMが良い結果か悪い結果かは取引タイプにより異なります�
   <div id="orderCard" class="card" hidden>
     <div class="order-head">
       <h2 style="margin:0;font-size:16px">注文内容</h2>
-      <button id="spBtn" type="button" class="sp-btn" aria-pressed="false" title="スプレッド(ブルプット・ベアコール・ブルコール・ベアプット)の注文に切り替えます。使わない側の入力欄は非表示になり、入力値は保持されます">SP</button>
+      <button id="spBtn" type="button" class="sp-btn" aria-pressed="false" title="単体注文とスプレッド(ブルプット・ベアコール・ブルコール・ベアプット)の注文を切り替えます。使わない側の入力欄は非表示になり、入力値は保持されます">SP</button>
     </div>
-    <p class="sub" style="margin:0 0 10px">注文の条件をここにまとめます。上の入力欄と連動していて、どちらで変更しても同じ値になります。ティッカーだけは、一番上の入力欄で変更して「分析する」を押してください。「SP」ボタンで、スプレッド注文に切り替わります。</p>
+    <p class="sub" style="margin:0 0 10px">注文の条件をここにまとめます。上の入力欄と連動していて、どちらで変更しても同じ値になります。ティッカーだけは、一番上の入力欄で変更して「分析する」を押してください。「ブルプットへ切替」などのボタンで、スプレッド注文（SP）と単体注文を切り替えられます。</p>
     <div class="form-row">
       <div class="field">
         <label>ティッカー</label>
@@ -188,13 +188,16 @@ ITMが良い結果か悪い結果かは取引タイプにより異なります�
       </div>
       <div class="field" data-only="buy">
         <label for="rrExpectedGainInput" data-target="riskRewardExplain"
-          data-note="このトレードで見込んでいる最大利益額を入力します。
-買い系は利益額が変動し追跡していないため、ご自身の見込みを入力してください。
-コール買い単体は上限なし、スプレッド買いはスプレッド幅−支払いプレミアム額が理論上の上限です。
-（プット買い単体も理論上は権利行使価格−支払いプレミアム額が上限ですが、自動での上限チェックはしていません）
-（スプレッド買いで超える入力をした場合、欄から離れると自動的に上限値に調整されます）">見越し最大利益額</label>
+          data-note="このトレードで見込んでいる最大利益額です。
+デフォルトでは、理論上の最大利益額が自動入力されます（空欄にすると自動入力に戻ります）。
+・スプレッド買い（ブルコール/ベアプット）：権利行使価格の差額−支払いプレミアム額
+・プット買い（単体）：現在の権利行使価格−支払いプレミアム額（株価は0未満にならないため）
+・コール買い（単体）：理論上の上限がないため自動入力はありません。ご自身の見込みを入力してください
+理論上の最大利益額を超える額は入力できません（入力した時点で上限に調整されます）。
+早めに利確するつもりなど、より小さい利益を見込む場合は、小さい値に書き換えてください。">見越し最大利益額</label>
         <input id="rrExpectedGainInput" type="number" step="0.01" min="0" placeholder="例: 8.00">
         <span class="field-warn" data-warn="rrExpectedGain" hidden></span>
+        <span class="field-hint" data-hint="rrExpectedGain"></span>
       </div>
       <div class="field">
         <label for="rrCutLossInput" data-target="riskRewardExplain"
@@ -322,9 +325,10 @@ ITMが良い結果か悪い結果かは取引タイプにより異なります�
       <div class="field" data-only="buy">
         <label for="rrExpectedGainInputM" data-target="riskRewardExplain" data-note="注文内容の「見越し最大利益額」と同じ入力欄です(どちらで入力しても連動します)。
 このトレードで見込んでいる最大利益額です。損益分岐に必要なITM発生率の計算に使います。
-（スプレッド買いで上限を超える入力をした場合、欄から離れると自動的に上限値に調整されます）">見越し最大利益額</label>
+デフォルトでは理論上の最大利益額が自動入力され、それを超える額は入力できません。">見越し最大利益額</label>
         <input id="rrExpectedGainInputM" data-mirror="rrExpectedGainInput" type="number" step="0.01" min="0" placeholder="例: 8.00">
         <span class="field-warn" data-warn="rrExpectedGain" hidden></span>
+        <span class="field-hint" data-hint="rrExpectedGain"></span>
       </div>
     </div>
     <div class="summary" id="rrCutLossSummary"></div>
