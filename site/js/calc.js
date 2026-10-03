@@ -167,6 +167,7 @@ export function favorableProbToLevel(favorableProb, group) {
  *   badgeLevel:number|null,
  *   perEntry:{date:string|null, itmDaysInWindow:number, maxDepthPct:number}[]
  *     maxDepthPct: 判定期間内の終値が権利行使価格から最も深く入った割合(0=一度もITMにならなかった)
+ *     maxOtmPct: 逆に、権利行使価格から最も深くOTM(ITMの反対側)になった割合(0=一度もOTMにならなかった)
  * }}
  */
 export function computeItmAnalysis(closes, params, dates) {
@@ -187,10 +188,12 @@ export function computeItmAnalysis(closes, params, dates) {
     entryCount++;
     let itmDaysInWindow = 0;
     let maxDepthPct = 0;
+    let maxOtmPct = 0;
     for (let d = 1; d <= window; d++) {
       const fwd = closes[i + d] / strike - 1;
       const depthNow = isBelow ? -fwd : fwd;
       if (depthNow > maxDepthPct) maxDepthPct = depthNow;
+      if (-depthNow > maxOtmPct) maxOtmPct = -depthNow;
       const itm = depthPct > 0
         ? (isBelow ? fwd <= -depthPct : fwd >= depthPct)
         : (isBelow ? fwd < 0 : fwd > 0);
@@ -202,7 +205,7 @@ export function computeItmAnalysis(closes, params, dates) {
     }
     if (itmDaysInWindow > 0) entriesItmWithinWindow++;
     totalItmDays += itmDaysInWindow;
-    perEntry.push({ date: dates ? dates[i] : null, itmDaysInWindow, maxDepthPct });
+    perEntry.push({ date: dates ? dates[i] : null, itmDaysInWindow, maxDepthPct, maxOtmPct });
   }
 
   const dayProb = [];

@@ -141,3 +141,59 @@ export function renderDepthHeatmap(perEntry, window, group, opts) {
   }).join("");
   return `<div class="hm-months">${blocks}</div>`;
 }
+
+// ---- エントリー日ごとの「最大OTM深さ」ヒートマップ ----
+// 最大ITM深さの逆で、判定期間内の終値が権利行使価格から最も深くOTM側に離れた割合(%)を色で表す。
+// 段階は最大ITM深さと同じ(0%, 〜3%, 3〜5%, 5〜8%, 8〜10%, 10〜15%, 15%超)。
+// 色の向きはユーザー指定: 売り(プット売・コール売)のOTMは暖色系、買い(コール買・プット買)のOTMは寒色系。
+const ORANGE_YELLOW = "color-mix(in srgb, var(--gradYellow) 50%, var(--gradOrange))";
+
+export const OTM_HEATMAP_BANDS = {
+  sell: [
+    { max: 0, label: "0%（OTMなし）", color: LIGHT_GRAY },
+    { max: 0.03, label: "〜3%", color: LIGHT_YELLOW },
+    { max: 0.05, label: "3〜5%", color: "var(--gradYellow)" },
+    { max: 0.08, label: "5〜8%", color: ORANGE_YELLOW },
+    { max: 0.10, label: "8〜10%", color: "var(--gradOrange)" },
+    { max: 0.15, label: "10〜15%", color: "var(--gradRed)" },
+    { max: Infinity, label: "15%超", color: DARK_RED },
+  ],
+  buy: [
+    { max: 0, label: "0%（OTMなし）", color: LIGHT_GRAY },
+    { max: 0.03, label: "〜3%", color: PALE_LIGHT_BLUE },
+    { max: 0.05, label: "3〜5%", color: "var(--gradLightBlue)" },
+    { max: 0.08, label: "5〜8%", color: "var(--gradBlue)" },
+    { max: 0.10, label: "8〜10%", color: MID_BLUE_PURPLE },
+    { max: 0.15, label: "10〜15%", color: "var(--gradPurple)" },
+    { max: Infinity, label: "15%超", color: DARK_PURPLE },
+  ],
+};
+
+function otmColor(otmPct, group) {
+  const bands = OTM_HEATMAP_BANDS[group] || OTM_HEATMAP_BANDS.sell;
+  const band = bands.find((b) => otmPct <= b.max);
+  return band ? band.color : bands[bands.length - 1].color;
+}
+
+/**
+ * @param {{date:string|null, maxOtmPct:number}[]} perEntry
+ * @param {number} window 判定期間(営業日)
+ * @param {'sell'|'buy'} group
+ * @param {{todayStrike:number}} opts 現在の権利行使価格(%をドルに換算して表示するため)
+ */
+export function renderOtmHeatmap(perEntry, window, group, opts) {
+  const { todayStrike = 0 } = opts || {};
+  const months = groupByMonth(perEntry);
+  const blocks = months.map(({ yearMonth, entries }) => {
+    const cells = entries.map(({ date, maxOtmPct }) => {
+      const dateLabel = date || "―";
+      const title = !(maxOtmPct > 0)
+        ? `${dateLabel}: 判定期間${window}日中、OTMになりませんでした`
+        : `${dateLabel}: 判定期間${window}日中の最大OTM深さ ${(maxOtmPct * 100).toFixed(1)}%（現在の権利行使価格に換算すると約${(maxOtmPct * todayStrike).toFixed(2)}ドル）`;
+      return `<div class="hm-cell" style="background:${otmColor(maxOtmPct, group)}" title="${title}"></div>`;
+    }).join("");
+    const label = yearMonth ? monthLabel(yearMonth) : "―";
+    return `<div class="hm-month"><div class="hm-month-label">${label}</div><div class="hm-grid hm-grid-5x5">${cells}</div></div>`;
+  }).join("");
+  return `<div class="hm-months">${blocks}</div>`;
+}

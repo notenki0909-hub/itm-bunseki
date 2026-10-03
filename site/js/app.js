@@ -11,7 +11,7 @@ import {
   VOLATILITY_PERIODS, computeVolatilityStats, computeRecentVolatilityAmount,
 } from "./calc.js";
 import { renderDayProbChart, DAY_PROB_BANDS } from "./chart.js";
-import { renderEntryHeatmap, ENTRY_HEATMAP_BANDS, renderDepthHeatmap, DEPTH_HEATMAP_BANDS } from "./heatmap.js";
+import { renderEntryHeatmap, ENTRY_HEATMAP_BANDS, renderDepthHeatmap, DEPTH_HEATMAP_BANDS, renderOtmHeatmap, OTM_HEATMAP_BANDS } from "./heatmap.js";
 import { initThemeBar } from "./theme.js";
 import { isPriceDataStale } from "./marketTime.js";
 import { addTickerToHistory, setupTickerHistoryDropdown, loadTickerHistory, mergeTickerHistory } from "./tickerHistory.js";
@@ -261,6 +261,8 @@ const els = {
   heatmapWrap: document.getElementById("heatmapWrap"),
   depthHeatmapWrap: document.getElementById("depthHeatmapWrap"),
   depthHeatmapLegend: document.getElementById("depthHeatmapLegend"),
+  otmHeatmapWrap: document.getElementById("otmHeatmapWrap"),
+  otmHeatmapLegend: document.getElementById("otmHeatmapLegend"),
   symbolLabel: document.getElementById("symbolLabel"),
   dayProbDepth: document.getElementById("dayProbDepth"),
   depthRiskBox: document.getElementById("depthRiskBox"),
@@ -753,6 +755,8 @@ function renderMainAnalysis(t) {
     + (depthDollar > 0
       ? `<span class="hm-cell hm-mark" style="background:var(--card)"></span><span>判定する深さ（${depthDollar}ドル）に届いた日</span>`
       : "");
+  els.otmHeatmapWrap.innerHTML = renderOtmHeatmap(analysis.perEntry, t.windowDays, group, { todayStrike });
+  els.otmHeatmapLegend.innerHTML = renderColorLegend(OTM_HEATMAP_BANDS[group]);
   els.result.hidden = false;
 }
 
