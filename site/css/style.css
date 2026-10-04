@@ -127,6 +127,7 @@ body[data-mode="naked"] [data-only="sp"],
 body[data-mode="sp"] [data-only="naked"]{display:none}
 .order-head{display:flex;align-items:center;gap:12px;margin:0 0 8px}
 .sp-btn{padding:5px 12px;font-size:13px;border-radius:999px;background:var(--field);color:var(--fg);border:1px solid var(--line);cursor:pointer}
+.sp-btn[hidden]{display:none}
 .sp-btn:hover{border-color:var(--accent);color:var(--accent)}
 .sp-btn.active{background:var(--accent);color:#fff;border-color:var(--accent)}
 .order-ticker{font-size:16px}

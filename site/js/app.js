@@ -248,6 +248,10 @@ const els = {
   todayRange: document.getElementById("todayRange"),
   todayClose: document.getElementById("todayClose"),
   todayCloseDate: document.getElementById("todayCloseDate"),
+  todayTitle: document.getElementById("todayTitle"),
+  statusDateInput: document.getElementById("statusDateInput"),
+  statusDateReset: document.getElementById("statusDateReset"),
+  statusDateHint: document.getElementById("statusDateHint"),
   todayStrike: document.getElementById("todayStrike"),
   momentumStrip: document.getElementById("momentumStrip"),
 
@@ -322,6 +326,7 @@ function newTabState() {
   return {
     id: nextTabId++,
     symbol: null,
+    statusDate: null, // 「本日の状況」で見る過去の日付(YYYY-MM-DD)。null=本日。表示だけの一時的な指定で、保存・共有はしない
     fetchedAt: null,  // closesFullをサーバーが取得した時刻(UTCミリ秒)。古いかの判定に使う
     closesFull: null, // フェッチした生データ(最大件数)。期間セレクターはこれをローカルでスライスするだけ
     datesFull: null,  // closesFullと同じ並びの日付文字列
@@ -393,6 +398,7 @@ function switchTab(id) {
   delete els.rrExpectedGainInput.dataset.auto;
   els.rrExpectedGainInput.value = t.rrExpectedGain ?? "";
   els.rrSpreadWidthInput.value = t.rrSpreadWidth ?? "";
+  els.statusDateInput.value = t.statusDate ?? "";
   setWarn("rrCutLoss", null);
   setWarn("rrExpectedGain", null);
   updateRiskRewardInputUI(t.typeKey, t.rrVariant);
@@ -645,9 +651,38 @@ function renderVolatilityCard(t) {
   els.volatilityCard.hidden = false;
 }
 
+// 「本日の状況」を、入力された過去の日付の時点で見るための基準日を決める。
+// 入力日が休場日なら、その日以前で最も近い営業日にする。データの最初より前の日付は使えない。
+// 戻り値: {endIdx(closesFull上の基準日の位置), asOf(基準日。本日のときnull), hint(補足文)}
+function resolveStatusDate(t) {
+  const last = t.closesFull.length - 1;
+  const want = t.statusDate;
+  if (!want) return { endIdx: last, asOf: null, hint: "" };
+  const first = t.datesFull[0];
+  if (want < first) {
+    return { endIdx: last, asOf: null, hint: `データは${first}以降です。本日の状況を表示しています` };
+  }
+  let idx = last;
+  while (idx > 0 && t.datesFull[idx] > want) idx--;
+  if (idx === last && t.datesFull[last] <= want) {
+    return { endIdx: last, asOf: null, hint: want === t.datesFull[last] ? "" : `${t.datesFull[last]}が最新のため、本日の状況を表示しています` };
+  }
+  const actual = t.datesFull[idx];
+  return { endIdx: idx, asOf: actual, hint: actual === want ? "" : `${want}は休場日のため、直前の営業日${actual}を表示しています` };
+}
+
 function renderTodayCard(t) {
-  const closes = periodClosesOf(t);
-  const dates = periodDatesOf(t);
+  const { endIdx, asOf, hint } = resolveStatusDate(t);
+  // 基準日までのデータだけを使い、集計期間の長さで末尾を切り出す(本日のときは従来と同じ)
+  const upto = t.closesFull.slice(0, endIdx + 1);
+  const uptoDates = t.datesFull.slice(0, endIdx + 1);
+  const closes = upto.slice(-t.periodDays);
+  const dates = uptoDates.slice(-t.periodDays);
+  els.todayTitle.textContent = asOf ? `${asOf} 時点の状況` : "本日の状況";
+  els.statusDateInput.min = t.datesFull[0];
+  els.statusDateInput.max = t.datesFull[t.datesFull.length - 1];
+  els.statusDateReset.hidden = !t.statusDate;
+  els.statusDateHint.textContent = hint;
   const latestIdx = closes.length - 1;
   const latestClose = closes[latestIdx];
   const strike = latestClose * t.ratio;
@@ -1558,6 +1593,16 @@ function init() {
   els.rrPremiumInput.addEventListener("input", debounce(onFormChange, 250));
   els.rrProfitRatioInput.addEventListener("input", debounce(onFormChange, 250));
   els.rrSpreadWidthInput.addEventListener("input", debounce(onFormChange, 250));
+  // 「本日の状況」の日付指定は、その表示だけを切り替える(他のカードは再計算しない)
+  const onStatusDateChange = (value) => {
+    const t = activeTab();
+    if (!t || !t.closesFull) return;
+    t.statusDate = value || null;
+    els.statusDateInput.value = t.statusDate ?? "";
+    renderTodayCard(t);
+  };
+  els.statusDateInput.addEventListener("change", () => onStatusDateChange(els.statusDateInput.value));
+  els.statusDateReset.addEventListener("click", () => onStatusDateChange(""));
   els.rrCutLossInput.addEventListener("input", debounce(onFormChange, 250));
   els.rrCutLossInput.addEventListener("blur", onCutLossBlur);
   els.rrExpectedGainInput.addEventListener("input", onExpectedGainInput);
