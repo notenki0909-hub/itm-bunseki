@@ -614,10 +614,24 @@ function updateConditionModeUI(mode) {
 
 // 集計期間で末尾N件にスライスした配列を返す(ローカル計算のみ。APIは叩かない)
 function periodClosesOf(t) {
-  return t.closesFull.slice(-t.periodDays);
+  return viewDataOf(t).closes.slice(-t.periodDays);
 }
 function periodDatesOf(t) {
-  return t.datesFull.slice(-t.periodDays);
+  return viewDataOf(t).dates.slice(-t.periodDays);
+}
+
+// 「状況を見る日付」を指定しているときは、その日までのデータだけを返す(指定した日が最新だった
+// つもりで、すべてのカードを計算するため)。未指定なら取得済みの全データ。
+function viewDataOf(t) {
+  const { endIdx } = resolveStatusDate(t);
+  if (endIdx === t.closesFull.length - 1) return { closes: t.closesFull, dates: t.datesFull };
+  return { closes: t.closesFull.slice(0, endIdx + 1), dates: t.datesFull.slice(0, endIdx + 1) };
+}
+
+// 日付指定中のとき、見出しに付ける「（◯◯時点）」。本日なら空文字。
+function asOfSuffixOf(t) {
+  const { asOf } = resolveStatusDate(t);
+  return asOf ? `（${asOf}時点）` : "";
 }
 
 function renderAll(t) {
@@ -632,7 +646,7 @@ function renderAll(t) {
 // 「変動幅の統計」カードを描画する。集計期間セレクターの影響を受けず、
 // 常に取得済みの全データ(closesFull、最大800営業日)を使う。
 function renderVolatilityCard(t) {
-  const closes = t.closesFull;
+  const closes = t.closesFull ? viewDataOf(t).closes : null;
   if (!closes || closes.length < 2) {
     els.volatilityCard.hidden = true;
     return;
@@ -767,7 +781,7 @@ function renderMainAnalysis(t) {
   els.heatmapDepth.textContent = depthTitle;
 
   els.symbolLabel.textContent = t.symbol;
-  els.resultTypeLabel.textContent = `：${type.label}、×${t.ratio}`;
+  els.resultTypeLabel.textContent = `：${type.label}、×${t.ratio}${asOfSuffixOf(t)}`;
   els.badge.textContent = analysis.badge;
   els.badge.className = "badge " + badgeLevelClass(analysis.badgeLevel);
   els.entryCount.textContent = analysis.entryCount.toLocaleString("ja-JP");
@@ -875,8 +889,7 @@ function isAutoStockPrice(typeKey, variant) {
 //   コール売り(単体): 損失無限大のため使わない(null)
 function lossBasisOf(t) {
   if (isAutoStockPrice(t.typeKey, t.rrVariant)) {
-    const c = t.closesFull;
-    return c && c.length ? c[c.length - 1] * t.ratio : null;
+    return todayStrikeOf(t);
   }
   if (t.rrVariant === "spread") return t.rrSpreadWidth;
   return null;
@@ -904,8 +917,9 @@ function updateRiskRewardInputUI(typeKey, variant) {
 
 // 現在の権利行使価格(本日の終値×比率)。データ未取得ならnull。
 function todayStrikeOf(t) {
-  const c = t.closesFull;
-  return c && c.length ? c[c.length - 1] * t.ratio : null;
+  if (!t.closesFull || !t.closesFull.length) return null;
+  const c = viewDataOf(t).closes;
+  return c[c.length - 1] * t.ratio;
 }
 
 // 損切額・見越し最大利益額の理論上の上限を求める。
@@ -1183,7 +1197,7 @@ function renderOrderCard(t) {
   const { todayStrike } = depthInfo(t, closes);
   const latest = closes[closes.length - 1];
 
-  els.orderTypeLabel.textContent = `：${isSp ? labels.spread : labels.naked}`;
+  els.orderTypeLabel.textContent = `：${isSp ? labels.spread : labels.naked}${asOfSuffixOf(t)}`;
   els.orderTicker.textContent = t.symbol || "―";
   els.orderClose.textContent = `最新終値 ${latest.toFixed(2)}（${dates[dates.length - 1]}）`;
   els.orderDepthPct.textContent = els.rrDepthPct.textContent;
@@ -1599,7 +1613,7 @@ function init() {
     if (!t || !t.closesFull) return;
     t.statusDate = value || null;
     els.statusDateInput.value = t.statusDate ?? "";
-    renderTodayCard(t);
+    renderAll(t); // 他のカードも、指定した日までのデータで再計算する
   };
   els.statusDateInput.addEventListener("change", () => onStatusDateChange(els.statusDateInput.value));
   els.statusDateReset.addEventListener("click", () => onStatusDateChange(""));
