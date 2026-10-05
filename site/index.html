@@ -134,13 +134,17 @@ ITMが良い結果か悪い結果かは取引タイプにより異なります�
 
     <div class="chart-title" id="dayProbTitle" data-target="dayProbExplain"
       data-note="各営業日について、エントリー日のうち何%が、その日の終値でITMになっていたかを示します（判定する深さを入力した場合は、その深さ以上のITM）。
-バーの色はその日のITM率（絶対値）を6段階で表したもので、有利/不利の向きとは連動していません。">過去の営業日ごとのITM<span id="dayProbDepth"></span>確率</div>
+バーの色はその日のITM率（絶対値）を6段階で表したもので、有利/不利の向きとは連動していません。
+右の「OTM確率に切替」ボタンを押すと、この表示がOTM確率（＝100%−ITM確率）に反転します（もう一度押すと元に戻ります）。OTM表示のときは、すぐ下の「エントリー日ごとのITM状況」もOTM表示（判定期間のうちOTMだった日数の割合）に切り替わります。
+OTM表示のバーの色は、OTM率の7段階（0〜60%、60〜70%、70〜80%、80〜85%、85〜90%、90〜95%、95%以上）で、売りは暖色系、買いは寒色系です。判定する深さを入力している場合のOTMは「その深さのITMではなかった」ことを指します。">過去の営業日ごとの<span id="dayProbKind">ITM</span><span id="dayProbDepth"></span>確率</div>
+    <button type="button" id="otmToggleBtn" class="sp-btn otm-toggle" aria-pressed="false" title="ITM確率とOTM確率の表示を切り替えます">OTM確率に切替</button>
     <div id="chartWrap"></div>
     <div class="hm-legend" id="dayProbLegend"></div>
 
     <div class="chart-title" id="entryHeatmapTitle" data-target="entryHeatmapExplain"
       data-note="集計期間内の取引開始日を1マスずつ時系列に並べ、その日から判定期間内でITMだった日数を色で表したものです（判定する深さを入力した場合は、その深さ以上のITMだった日数）。
-色は日数（絶対値）を7段階で表したもので、有利/不利の向きとは連動していません。">エントリー日ごとのITM<span id="heatmapDepth"></span>状況（クリックすると日付を表示）</div>
+色は日数（絶対値）を7段階で表したもので、有利/不利の向きとは連動していません。
+上の「過去の営業日ごとのITM確率」の切替ボタンでOTM表示にすると、判定期間のうちOTMだった日数を判定期間に対する割合（%）で表し、クリックしたときは「◯%（◯日間）」の形で表示します。色はOTM率の7段階（0〜60%、60〜70%、70〜80%、80〜85%、85〜90%、90〜95%、95%以上）で、売りは暖色系、買いは寒色系です。">エントリー日ごとの<span id="heatmapKind">ITM</span><span id="heatmapDepth"></span>状況（クリックすると日付を表示）</div>
     <div id="heatmapWrap"></div>
     <div class="hm-legend" id="entryHeatmapLegend"></div>
 

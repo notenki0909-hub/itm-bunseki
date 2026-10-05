@@ -1213,6 +1213,25 @@ Questionで以下を確認して確定:
   (#dayProbTitle/#entryHeatmapTitle/#depthHeatmapTitle/#otmHeatmapTitle)。font-size 12px→13px、font-weight 700。style.cssの末尾近く(.chart-title[data-target]の直後)に追加。
 - 他の.chart-title(「過去N営業日比較」など)は12pxのまま。
 
+17-26. ITM確率/OTM確率の表示切替(営業日ごとのチャート＋エントリー日ごとのヒートマップ)
+- ユーザー要望: 「過去の営業日ごとのITM確率」にボタンを付け、押すと反転してOTM確率表示に切替。このときエントリー日ごとのITM状況も、
+  OTMの日数を判定期間に対する%で表し、括弧内に「◯日間」と表示。段階は0〜60/60〜70/70〜80/80〜85/85〜90/90〜95/95%以上の7段階、
+  売りは暖色・買いは寒色。「プッシュする前にローカルで確認するのでURLを」とのことで、**このバージョンは未コミット・未プッシュ**(確認待ち)。
+- 仕様: ボタン#otmToggleBtn(「OTM確率に切替」⇄「ITM確率に切替」)は見出しの右。1つのボタンで、棒グラフ(1−ITM確率)と
+  エントリー日ごとのヒートマップ(OTM日数/判定期間)の両方を切り替える。見出しは「…のOTM確率」「…のOTM状況」に。
+  マスのクリック表示は「2025-03-10: 判定期間30日中 OTM 93.3%（28日間）」。棒グラフのOTM表示も同じ7段階配色(凡例も同じ)。
+  深さ入力時のOTMは「その深さのITMではなかった」意味(補集合)。見出しは「OTM（ITM◯ドル未満）」、マスの文言に「／OTM＝ITM(◯ドル以上)ではなかった日」。
+  各段階は下限を含む(ちょうど60%は60〜70%)。最大ITM/OTM深さのヒートマップや総合判定には影響しない。
+- 実装: heatmap.js に OTM_RATE_BANDS(min下限方式)/otmRateColor、renderEntryHeatmap に mode 引数。chart.js の renderDayProbChart に mode 引数
+  (heatmap.jsからotmRateColorをimport)。app.js はタブ状態 t.otmView(保存・共有しない一時的な切替)、renderMainAnalysisで見出し・凡例・描画を切替、
+  ボタンのclickでrenderMainAnalysisだけ再描画。index.htmlの見出しは <span id="dayProbKind">/<span id="heatmapKind"> で ITM/OTM を差し替え。
+  説明文(data-note)・guide.html(「ITM確率とOTM確率の切替」小節)も更新。
+- 検証(ローカル、QQQ): 切替で見出し/ボタン/凡例/棒/マスの文言が反転し元に戻る。境界(0.6→60〜70%, 27/30→90〜95%, 29/30→95%以上)OK。
+  call_buy+深さ5ドルで「OTM（ITM5ドル未満）」表示・7色が出ることを確認。コンソールエラーなし。
+- 追記(同じ未コミット分): 見出し3つ(#dayProbTitle/#entryHeatmapTitle/#depthHeatmapTitle)の文字色を --fg(黒。ライト系は黒に近い色、ダーク系は明るい色)に変更。
+  クリックで.activeになったとき・マウスオーバーのアクセント色は従来どおり(ID指定のCSSで色を上書きしたため、:hover/.activeもID指定で書き直してある)。
+  「最大OTM深さ」の見出し(#otmHeatmapTitle)も続けて同じ指定に追加(計4つ)。
+
 ====================================================================
 18. コミット履歴（時系列、参考）
 ====================================================================

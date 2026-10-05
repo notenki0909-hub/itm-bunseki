@@ -194,6 +194,12 @@ button:disabled{opacity:.6;cursor:default}
 .chart-title[data-target]{cursor:pointer;display:inline-block}
 /* 分析結果の4つのグラフ・ヒートマップの見出しは、1段階大きく太字にする */
 #dayProbTitle,#entryHeatmapTitle,#depthHeatmapTitle,#otmHeatmapTitle{font-size:13px;font-weight:700}
+/* 4つの見出しは文字色を黒(--fg。ライト系は黒に近い色、ダーク系は読める明るい色)にする。クリック(.active)・マウスを乗せたときは従来どおりアクセント色 */
+#dayProbTitle,#entryHeatmapTitle,#depthHeatmapTitle,#otmHeatmapTitle{color:var(--fg)}
+#dayProbTitle:hover,#entryHeatmapTitle:hover,#depthHeatmapTitle:hover,#otmHeatmapTitle:hover,
+#dayProbTitle.active,#entryHeatmapTitle.active,#depthHeatmapTitle.active,#otmHeatmapTitle.active{color:var(--accent)}
+/* ITM確率/OTM確率の表示切替ボタン(過去の営業日ごとのITM確率の見出しの右) */
+.otm-toggle{margin-left:10px;vertical-align:middle}
 .chart-title[data-target]:hover{color:var(--accent);text-decoration:underline}
 .chart-title[data-target].active{color:var(--accent)}
 

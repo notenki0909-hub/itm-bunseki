@@ -60,12 +60,20 @@ function groupByMonth(perEntry) {
  * @param {'sell'|'buy'} group 色の基準を売り/買いで切り替えるために使う
  * @returns {string} HTML文字列
  */
-export function renderEntryHeatmap(perEntry, window, group, depthLabel = "") {
+export function renderEntryHeatmap(perEntry, window, group, depthLabel = "", mode = "itm") {
   const months = groupByMonth(perEntry);
 
   const blocks = months.map(({ yearMonth, entries }) => {
     const cells = entries.map(({ date, itmDaysInWindow }) => {
       const dateLabel = date || "―";
+      if (mode === "otm") {
+        // OTM表示: 判定期間のうちITMでなかった日数を、判定期間に対する割合(%)で色分けする。
+        // クリックしたときは「◯%（◯日間）」の形で出す。
+        const otmDays = window - itmDaysInWindow;
+        const rate = window > 0 ? otmDays / window : 0;
+        const tip = `${dateLabel}: 判定期間${window}日中 OTM ${(rate * 100).toFixed(1)}%（${otmDays}日間）${depthLabel}`;
+        return `<div class="hm-cell hm-click" style="background:${otmRateColor(rate, group)}" data-tip="${tip}"></div>`;
+      }
       const title = `${dateLabel}: 判定期間${window}日中${itmDaysInWindow}日ITM${depthLabel}`;
       return `<div class="hm-cell hm-click" style="background:${cellColor(itmDaysInWindow, group)}" data-tip="${title}"></div>`;
     }).join("");
@@ -197,4 +205,39 @@ export function renderOtmHeatmap(perEntry, window, group, opts) {
     return `<div class="hm-month"><div class="hm-month-label">${label}</div><div class="hm-grid hm-grid-5x5">${cells}</div></div>`;
   }).join("");
   return `<div class="hm-months">${blocks}</div>`;
+}
+
+// ---- OTM率(判定期間に対するOTMだった日数の割合)の7段階配色 ----
+// 「過去の営業日ごとのITM確率」をOTM表示に切り替えたときの棒グラフと、「エントリー日ごとのITM状況」の
+// OTM表示で共通に使う。段階はユーザー指定: 0〜60%, 60〜70%, 70〜80%, 80〜85%, 85〜90%, 90〜95%, 95%以上。
+// 色の向きもユーザー指定: 売り(プット売・コール売)は暖色系、買い(コール買・プット買)は寒色系。
+// OTM率が高いほど濃い色。各段階はmin以上(下限を含む)で判定する。
+export const OTM_RATE_BANDS = {
+  sell: [
+    { min: 0, label: "0〜60%", color: LIGHT_YELLOW },
+    { min: 0.60, label: "60〜70%", color: "var(--gradYellow)" },
+    { min: 0.70, label: "70〜80%", color: ORANGE_YELLOW },
+    { min: 0.80, label: "80〜85%", color: "var(--gradOrange)" },
+    { min: 0.85, label: "85〜90%", color: "color-mix(in srgb, var(--gradOrange) 50%, var(--gradRed))" },
+    { min: 0.90, label: "90〜95%", color: "var(--gradRed)" },
+    { min: 0.95, label: "95%以上", color: DARK_RED },
+  ],
+  buy: [
+    { min: 0, label: "0〜60%", color: PALE_LIGHT_BLUE },
+    { min: 0.60, label: "60〜70%", color: "var(--gradLightBlue)" },
+    { min: 0.70, label: "70〜80%", color: "color-mix(in srgb, var(--gradLightBlue) 50%, var(--gradBlue))" },
+    { min: 0.80, label: "80〜85%", color: "var(--gradBlue)" },
+    { min: 0.85, label: "85〜90%", color: MID_BLUE_PURPLE },
+    { min: 0.90, label: "90〜95%", color: "var(--gradPurple)" },
+    { min: 0.95, label: "95%以上", color: DARK_PURPLE },
+  ],
+};
+
+export function otmRateColor(rate, group) {
+  const bands = OTM_RATE_BANDS[group] || OTM_RATE_BANDS.sell;
+  let color = bands[0].color;
+  for (const b of bands) {
+    if (rate >= b.min - 1e-12) color = b.color;
+  }
+  return color;
 }

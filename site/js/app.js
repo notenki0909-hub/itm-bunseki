@@ -11,7 +11,7 @@ import {
   VOLATILITY_PERIODS, computeVolatilityStats, computeRecentVolatilityAmount,
 } from "./calc.js";
 import { renderDayProbChart, DAY_PROB_BANDS } from "./chart.js";
-import { renderEntryHeatmap, ENTRY_HEATMAP_BANDS, renderDepthHeatmap, DEPTH_HEATMAP_BANDS, renderOtmHeatmap, OTM_HEATMAP_BANDS } from "./heatmap.js";
+import { renderEntryHeatmap, ENTRY_HEATMAP_BANDS, renderDepthHeatmap, DEPTH_HEATMAP_BANDS, renderOtmHeatmap, OTM_HEATMAP_BANDS, OTM_RATE_BANDS } from "./heatmap.js";
 import { initThemeBar } from "./theme.js";
 import { isPriceDataStale } from "./marketTime.js";
 import { addTickerToHistory, setupTickerHistoryDropdown, loadTickerHistory, mergeTickerHistory } from "./tickerHistory.js";
@@ -269,6 +269,9 @@ const els = {
   otmHeatmapLegend: document.getElementById("otmHeatmapLegend"),
   symbolLabel: document.getElementById("symbolLabel"),
   dayProbDepth: document.getElementById("dayProbDepth"),
+  dayProbKind: document.getElementById("dayProbKind"),
+  heatmapKind: document.getElementById("heatmapKind"),
+  otmToggleBtn: document.getElementById("otmToggleBtn"),
   depthRiskBox: document.getElementById("depthRiskBox"),
   depthRiskLine: document.getElementById("depthRiskLine"),
   heatmapDepth: document.getElementById("heatmapDepth"),
@@ -326,6 +329,7 @@ function newTabState() {
   return {
     id: nextTabId++,
     symbol: null,
+    otmView: false,   // 「過去の営業日ごとのITM確率」とエントリー日ごとのITM状況を、OTM表示にしているか。表示だけの一時的な切替で、保存・共有はしない
     statusDate: null, // 「本日の状況」で見る過去の日付(YYYY-MM-DD)。null=本日。表示だけの一時的な指定で、保存・共有はしない
     fetchedAt: null,  // closesFullをサーバーが取得した時刻(UTCミリ秒)。古いかの判定に使う
     closesFull: null, // フェッチした生データ(最大件数)。期間セレクターはこれをローカルでスライスするだけ
@@ -777,8 +781,17 @@ function renderMainAnalysis(t) {
     : "＝ 0%（一度でもITMになれば該当）";
   const depthTitle = depthSuffixOf(t);
   document.querySelectorAll(".dep-sfx").forEach((el) => { el.textContent = depthTitle; });
-  els.dayProbDepth.textContent = depthTitle;
-  els.heatmapDepth.textContent = depthTitle;
+  // ITM/OTM表示の切替。OTM表示のときの「OTM」は、深さを入力していれば「その深さのITMではなかった」こと
+  const otmMode = !!t.otmView;
+  const kindTitle = otmMode ? "OTM" : "ITM";
+  const kindDepth = otmMode ? (depthDollar > 0 ? `（ITM${depthDollar}ドル未満）` : "") : depthTitle;
+  els.dayProbKind.textContent = kindTitle;
+  els.heatmapKind.textContent = kindTitle;
+  els.dayProbDepth.textContent = kindDepth;
+  els.heatmapDepth.textContent = kindDepth;
+  els.otmToggleBtn.textContent = otmMode ? "ITM確率に切替" : "OTM確率に切替";
+  els.otmToggleBtn.setAttribute("aria-pressed", otmMode ? "true" : "false");
+  els.otmToggleBtn.classList.toggle("active", otmMode);
 
   els.symbolLabel.textContent = t.symbol;
   els.resultTypeLabel.textContent = `：${type.label}、×${t.ratio}${asOfSuffixOf(t)}`;
@@ -791,14 +804,15 @@ function renderMainAnalysis(t) {
     ? "―"
     : (analysis.overallItmProb * 100).toFixed(1) + "%";
   const group = typeGroup(t.typeKey);
-  els.chartWrap.innerHTML = renderDayProbChart(analysis.dayProb, group);
+  els.chartWrap.innerHTML = renderDayProbChart(analysis.dayProb, group, otmMode ? "otm" : "itm");
   els.heatmapWrap.innerHTML = renderEntryHeatmap(analysis.perEntry, t.windowDays, group,
-    depthDollar > 0 ? `(${depthDollar}ドル以上)` : "");
+    depthDollar > 0 ? (otmMode ? `／OTM＝ITM(${depthDollar}ドル以上)ではなかった日` : `(${depthDollar}ドル以上)`) : "",
+    otmMode ? "otm" : "itm");
   hideCellTip();
   renderDepthRisk(t, analysis, depthDollar, group);
   els.badgeLegend.innerHTML = renderBadgeLegend(group);
-  els.dayProbLegend.innerHTML = renderColorLegend(DAY_PROB_BANDS[group]);
-  els.entryHeatmapLegend.innerHTML = renderColorLegend(ENTRY_HEATMAP_BANDS[group]);
+  els.dayProbLegend.innerHTML = renderColorLegend(otmMode ? OTM_RATE_BANDS[group] : DAY_PROB_BANDS[group]);
+  els.entryHeatmapLegend.innerHTML = renderColorLegend(otmMode ? OTM_RATE_BANDS[group] : ENTRY_HEATMAP_BANDS[group]);
   els.depthHeatmapWrap.innerHTML = renderDepthHeatmap(analysis.perEntry, t.windowDays, group,
     { depthPct, depthDollar });
   els.depthHeatmapLegend.innerHTML = renderColorLegend(DEPTH_HEATMAP_BANDS[group])
@@ -1615,6 +1629,12 @@ function init() {
     els.statusDateInput.value = t.statusDate ?? "";
     renderAll(t); // 他のカードも、指定した日までのデータで再計算する
   };
+  els.otmToggleBtn.addEventListener("click", () => {
+    const t = activeTab();
+    if (!t || !t.closesFull) return;
+    t.otmView = !t.otmView;
+    renderMainAnalysis(t);
+  });
   els.statusDateInput.addEventListener("change", () => onStatusDateChange(els.statusDateInput.value));
   els.statusDateReset.addEventListener("click", () => onStatusDateChange(""));
   els.rrCutLossInput.addEventListener("input", debounce(onFormChange, 250));
